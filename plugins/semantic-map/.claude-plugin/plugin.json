@@ -1,0 +1,12 @@
+{
+  "name": "semantic-map",
+  "description": "網站語意地圖:撞稿(keyword cannibalization)與孤島頁偵測。掃 HTML 資料夾或 sitemap,TF-IDF 相似度報告,純標準庫零依賴。",
+  "version": "0.1.0",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://www.coolkidlab.com/seo-journey/semantic-map-topic-drift.html",
+  "license": "MIT",
+  "keywords": ["seo", "cannibalization", "semantic", "tf-idf", "zh-tw"]
+}
