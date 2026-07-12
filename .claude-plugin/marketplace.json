@@ -1,0 +1,14 @@
+{
+  "name": "coolkid-plugins",
+  "owner": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "plugins": [
+    {
+      "name": "semantic-map",
+      "source": "./plugins/semantic-map",
+      "description": "網站語意地圖:撞稿與孤島頁偵測(TF-IDF,零依賴,中英混排通吃)"
+    }
+  ]
+}
