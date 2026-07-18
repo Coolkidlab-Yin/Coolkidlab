@@ -1,5 +1,5 @@
 ---
-name: competitor-sitemap-map
+name: competitor-content-map
 description: >
   扒對手 sitemap 做內容作戰地圖。當使用者想知道「對手網站都寫了哪些主題」
   「這個行業還有什麼內容空白能卡位」「對手最近在更新什麼」,或提到
@@ -8,7 +8,7 @@ description: >
   新鮮度訊號的 Markdown 作戰地圖。
 ---
 
-# 扒對手 sitemap 找內容空白(competitor-sitemap-map)
+# 對手內容地圖(competitor-content-map)
 
 ## 什麼時候用
 

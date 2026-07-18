@@ -1,19 +1,19 @@
 {
-  "name": "coolkid-plugins",
+  "name": "coolkidlab",
   "owner": {
     "name": "coolkid",
     "url": "https://www.coolkidlab.com"
   },
   "plugins": [
     {
-      "name": "semantic-map",
-      "source": "./plugins/semantic-map",
-      "description": "網站語意地圖:撞稿與孤島頁偵測(TF-IDF,零依賴,中英混排通吃)"
+      "name": "article-overlap-checker",
+      "source": "./plugins/article-overlap-checker",
+      "description": "文章撞稿檢查:找出網站裡互搶排名的相似文章、沒有內鏈的孤島頁(零依賴)"
     },
     {
-      "name": "competitor-sitemap-map",
-      "source": "./plugins/competitor-sitemap-map",
-      "description": "扒對手 sitemap 找內容空白:主題分桶、跨站覆蓋矩陣、lastmod 新鮮度(零依賴)"
+      "name": "competitor-content-map",
+      "source": "./plugins/competitor-content-map",
+      "description": "對手內容地圖:扒公開 sitemap 看對手寫了什麼、你還缺什麼、誰在持續更新(零依賴)"
     }
   ]
 }
