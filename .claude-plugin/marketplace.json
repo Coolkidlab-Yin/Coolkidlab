@@ -9,6 +9,11 @@
       "name": "semantic-map",
       "source": "./plugins/semantic-map",
       "description": "網站語意地圖:撞稿與孤島頁偵測(TF-IDF,零依賴,中英混排通吃)"
+    },
+    {
+      "name": "competitor-sitemap-map",
+      "source": "./plugins/competitor-sitemap-map",
+      "description": "扒對手 sitemap 找內容空白:主題分桶、跨站覆蓋矩陣、lastmod 新鮮度(零依賴)"
     }
   ]
 }
