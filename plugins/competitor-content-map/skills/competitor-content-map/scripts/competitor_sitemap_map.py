@@ -56,7 +56,7 @@ if hasattr(sys.stdout, "reconfigure"):
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "outputs" / "sitemap-maps"
 
-USER_AGENT = "Mozilla/5.0 (compatible; competitor-content-map/1.0; +https://github.com/WEIYIN-11/Coolkidlab)"
+USER_AGENT = "Mozilla/5.0 (compatible; competitor-content-map/1.0; +https://github.com/Coolkidlab-Yin/Coolkidlab)"
 TIMEOUT = 20  # seconds per request
 MAX_SITEMAPS_PER_DOMAIN = 50  # safety cap on sitemap-index fan-out
 MAX_URLS_PER_DOMAIN = 20000  # safety cap on URL collection
