@@ -1,0 +1,18 @@
+{
+  "name": "competitor-content-map",
+  "version": "0.1.0",
+  "description": "對手內容地圖:扒公開 sitemap 看對手寫了什麼、你還缺什麼、誰在持續更新(零依賴)",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/Coolkidlab",
+  "license": "MIT",
+  "keywords": [
+    "seo",
+    "competitor",
+    "content-gap",
+    "sitemap",
+    "zh-tw"
+  ]
+}
