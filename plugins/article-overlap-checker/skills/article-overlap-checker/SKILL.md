@@ -1,13 +1,13 @@
 ---
-name: semantic-map
+name: article-overlap-checker
 description: >
-  網站語意地圖 — 撞稿(cannibalization)與孤島頁偵測。當使用者想檢查「網站有沒有
+  文章撞稿檢查 — 找出互搶排名的相似文章與孤島頁。當使用者想檢查「網站有沒有
   兩篇文章在互搶排名」「新文章題目會不會跟舊文撞」「哪些頁面是沒有內鏈脈絡的孤島」,
   或提到 撞稿/內容重複/keyword cannibalization/語意地圖/選題檢查 時使用。
   輸入是本機 HTML 資料夾或 sitemap 網址,輸出是 Markdown 報告。
 ---
 
-# 網站語意地圖(semantic-map)
+# 文章撞稿檢查(article-overlap-checker)
 
 ## 什麼時候用
 
