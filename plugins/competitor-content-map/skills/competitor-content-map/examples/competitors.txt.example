@@ -1,0 +1,30 @@
+# competitors.txt — competitor-content-map 的 --config 設定檔範例
+#
+# 用法：
+#   1. 複製這個檔案，改名成 competitors.txt（放哪裡都行）
+#   2. 把下面的佔位符換成真實域名
+#   3. 執行：
+#      python scripts/competitor_sitemap_map.py --config path/to/competitors.txt
+#
+# 格式規則（以腳本 load_config 實際行為為準）：
+#   - 一行一個域名，不用加 https://（加了也可以，腳本會自己補協定）
+#   - 空行會被跳過
+#   - 「#」開頭的整行是註解（只支援整行註解，不要寫在域名同一行後面）
+#   - 行尾加一個空白 + you（不分大小寫）標記「你自己的站」，用來算內容空白
+#   - you 只該標一個站；標了多行時只有最後一行生效
+#   - 沒標 you 的行全部視為對手
+#
+# 與命令列參數混用時：
+#   - --vs 給的域名會和這裡的對手清單合併
+#   - --you 旗標優先於這裡的 you 標記
+
+# ── 你自己的站（行尾加 you）──
+www.your-site.com you
+
+# ── 對手站，一行一個 ──
+rival1.com
+rival2.com
+blog.rival3.com
+
+# 暫時不想比的對手，用 # 註解掉即可
+# rival4.com
