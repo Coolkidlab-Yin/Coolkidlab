@@ -37,7 +37,9 @@ python scripts/competitor_sitemap_map.py --vs rival1.com --cc
 ## 三段分工(核心原則:別讓 AI 編數字)
 
 1. **確定性的事腳本做**:抓 sitemap.xml / robots.txt / sitemap index、解 .xml.gz、
-   去重、依 URL 路徑粗分桶、算 lastmod 新鮮度、跨站比對找空白。
+   去重、依 URL 路徑粗分桶、算 lastmod 新鮮度、跨站比對找空白。而且是**先讀自己
+   再掃對手** — 第 0 步先算出你自己站的主軸輪廓,空白候選才有對齊基準,不會被帶去
+   主題漂移。
 2. **語意判斷交給 AI**:主題分群與空白候選的歸類 — 輸出自帶一段可直接貼給
    Claude/ChatGPT 的 prompt block。
 3. **搜尋量與競爭度兩邊都不碰**:sitemap 裡根本沒有這資料,AI 一報就是幽靈數字;
