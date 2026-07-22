@@ -6,7 +6,9 @@
 
 設計分工（這支腳本的核心原則 — 別讓 AI 編數字）:
     確定性的事 → 腳本做：抓 sitemap.xml / robots.txt / sitemap index、解 .xml.gz、
-                  去重、依 URL 路徑粗分桶、算 lastmod 新鮮度、跨站比對找空白。
+                  去重、依 URL 路徑粗分桶、算 lastmod 新鮮度、跨站比對找空白、
+                  第 0 步先讀你自己的站（主打主題 + slug 語彙輪廓）並給空白候選
+                  標主軸對齊度（避免照單全收追空白造成主題漂移）。
     語意判斷    → 交給 AI（貼 block 進 Claude/ChatGPT；或 --cc 走訂閱；或 --ai 走 API）。
     搜尋量/競爭度 → 兩邊都不碰。sitemap 裡根本沒這資料，AI 一報就是幽靈數字。
                    必須回 Google Keyword Planner / Ahrefs 免費工具驗證。
@@ -63,6 +65,24 @@ MAX_URLS_PER_DOMAIN = 20000  # safety cap on URL collection
 
 # 兩字母語系前綴（/en/ /zh/ /ja/…）+ 常見地區碼 → 分桶時跳過，取下一段才是真主題。
 LOCALE_SEG = re.compile(r"^([a-z]{2}([-_][a-z]{2,4})?|zh-(hans|hant|tw|cn|hk))$", re.I)
+
+# slug token 抽取：英數字、長度 ≥3、小寫（CJK slug 先不拆 — 誠實侷限，見第 0 步）。
+TOKEN_RE = re.compile(r"[a-z0-9]{3,}")
+
+# slug 停用詞：URL 結構詞 + 內容站通用填充詞，對不出主題語意，抽 token 時濾掉。
+SLUG_STOPWORDS = frozenset({
+    # 結構詞（URL 骨架）
+    "html", "htm", "php", "asp", "aspx", "shtml", "index", "page", "pages",
+    "www", "com", "net", "org", "blog", "blogs", "post", "posts", "article",
+    "articles", "category", "categories", "cat", "tag", "tags", "archive",
+    "archives", "author", "feed", "rss", "amp", "item", "items", "view",
+    "detail", "content", "static", "assets", "images", "img", "media",
+    "uploads", "wp", "node", "default", "main", "home", "site", "web", "info",
+    # 通用填充詞（幾乎每個內容站都用，對齊時只會製造假交集）
+    "the", "and", "for", "with", "from", "that", "this", "your", "you",
+    "how", "what", "why", "when", "where", "not", "are", "can", "all",
+    "guide", "guides", "tips", "best", "top", "new", "free", "online",
+})
 
 TW = timezone(timedelta(hours=8))
 
@@ -226,6 +246,64 @@ def bucket_of(loc: str) -> str:
     return seg or "(頂層頁)"
 
 
+def _text_tokens(text: str) -> list[str]:
+    """從任意文字抽語意 token：英數字、長度 ≥3、小寫、去停用詞與純數字。"""
+    return [
+        t for t in TOKEN_RE.findall(text.lower())
+        if t not in SLUG_STOPWORDS and not t.isdigit()
+    ]
+
+
+def slug_tokens(loc: str) -> list[str]:
+    """從 URL path 抽 slug token（先 unquote 解碼 percent-encoding）。
+
+    只抓英數字 — CJK slug 先不拆（誠實侷限：中文網址的站輪廓會偏薄，
+    語意對齊請以報告裡 AI 分群那段為準）。
+    """
+    path = urllib.parse.unquote(urllib.parse.urlparse(loc).path)
+    return _text_tokens(path)
+
+
+def you_profile(you: SiteData) -> dict:
+    """第 0 步：確定性讀你自己的站（無 AI）。
+
+    回 {"top_buckets": [(桶, 頁數, 佔比%)] 前 10, "tokens": [(token, 次數)] 前 25}。
+    空白候選的主軸對齊標記以這份輪廓為基準。
+    """
+    total = len(you.urls) or 1
+    top_buckets = [
+        (b, n, round(100.0 * n / total, 1))
+        for b, n in you.buckets.most_common(10)
+    ]
+    tok: Counter = Counter()
+    for loc, _ in you.urls:
+        tok.update(slug_tokens(loc))
+    return {"top_buckets": top_buckets, "tokens": tok.most_common(25)}
+
+
+def bucket_slug_index(sites: list[SiteData]) -> dict[str, set[str]]:
+    """每個桶在各站樣本 URL 的 slug token 聯集（主軸對齊計算用）。"""
+    idx: dict[str, set[str]] = {}
+    for s in sites:
+        for loc, _ in s.urls:
+            idx.setdefault(bucket_of(loc), set()).update(slug_tokens(loc))
+    return idx
+
+
+ALIGN_LABELS = {2: "貼近主軸", 1: "邊緣", 0: "偏離主軸⚠"}
+
+
+def align_of(bucket: str, bucket_tokens: set[str], you_tokens: set[str]) -> tuple[str, int]:
+    """候選桶 vs 你的主軸語彙：交集 ≥2 貼近主軸 / =1 邊緣 / 0 偏離主軸⚠。
+
+    桶名本身的 token 也算進候選方。回 (標籤, 等級 0-2)。
+    """
+    cand = bucket_tokens | set(_text_tokens(bucket))
+    overlap = len(cand & you_tokens)
+    rank = 2 if overlap >= 2 else (1 if overlap == 1 else 0)
+    return ALIGN_LABELS[rank], rank
+
+
 def parse_date(s: str | None) -> datetime | None:
     if not s:
         return None
@@ -282,8 +360,12 @@ def freshness_signal(data: SiteData) -> list[str]:
     return out
 
 
-def build_gap_view(sites: list[SiteData]) -> dict:
-    """跨站覆蓋矩陣 + 空白候選。純計數，誠實標註限制。"""
+def build_gap_view(sites: list[SiteData], profile: dict | None = None) -> dict:
+    """跨站覆蓋矩陣 + 空白候選。純計數，誠實標註限制。
+
+    有給 profile（第 0 步輪廓）時，you_missing / thin_everywhere 每個候選加
+    "align" 欄（貼近主軸 / 邊緣 / 偏離主軸⚠），排序改為對齊級別優先。
+    """
     you = next((s for s in sites if s.is_you), None)
     rivals = [s for s in sites if not s.is_you]
 
@@ -300,13 +382,27 @@ def build_gap_view(sites: list[SiteData]) -> dict:
     for s in rivals:
         rival_union.update(s.buckets)
 
+    you_tokens = {t for t, _ in profile["tokens"]} if profile else set()
+    slug_idx = bucket_slug_index(sites) if profile else {}
+
+    def _attach_align(row: dict) -> dict:
+        if profile:
+            label, rank = align_of(row["bucket"], slug_idx.get(row["bucket"], set()), you_tokens)
+            row["align"] = label
+            row["align_rank"] = rank
+        return row
+
     # 對手有、你沒有
     you_missing = []
     if you:
         for b, total in rival_union.most_common():
             if b not in you_buckets and b not in ("(首頁/root)", "(頂層頁)"):
                 holders = [s.domain for s in rivals if s.buckets.get(b)]
-                you_missing.append({"bucket": b, "rival_total": total, "held_by": holders})
+                you_missing.append(
+                    _attach_align({"bucket": b, "rival_total": total, "held_by": holders})
+                )
+        if profile:  # 對齊級別優先，同級再按對手量
+            you_missing.sort(key=lambda m: (-m["align_rank"], -m["rival_total"]))
 
     # 全行業薄弱：某桶在「有它的站」裡計數都很低（沒人寫透）
     thin = []
@@ -315,7 +411,12 @@ def build_gap_view(sites: list[SiteData]) -> dict:
             continue
         counts = [s.buckets[b] for s in sites if s.buckets.get(b)]
         if counts and max(counts) <= 3 and len(counts) >= 1:
-            thin.append({"bucket": b, "max_count": max(counts), "present_in": len(counts)})
+            thin.append(
+                _attach_align({"bucket": b, "max_count": max(counts), "present_in": len(counts)})
+            )
+    if profile:  # 對齊級別優先，同級再按原本的量序（越薄越前）
+        thin.sort(key=lambda x: (-x["align_rank"], x["max_count"]))
+        thin = thin[:25]
 
     # 對手主導：某站在某桶數量明顯壓過其他站
     dominated = []
@@ -329,9 +430,10 @@ def build_gap_view(sites: list[SiteData]) -> dict:
     return {
         "matrix": matrix,
         "you_missing": you_missing[:25],
-        "thin_everywhere": sorted(thin, key=lambda x: x["max_count"])[:25],
+        "thin_everywhere": thin if profile else sorted(thin, key=lambda x: x["max_count"])[:25],
         "dominated": sorted(dominated, key=lambda x: -x["count"])[:25],
         "has_you": you is not None,
+        "has_align": profile is not None,
     }
 
 
@@ -353,7 +455,7 @@ WARN_BLOCK = """\
 """
 
 
-def render_markdown(sites: list[SiteData], gap: dict, ts: str) -> str:
+def render_markdown(sites: list[SiteData], gap: dict, ts: str, profile: dict | None = None) -> str:
     L: list[str] = []
     L.append("# 對手 Sitemap 作戰地圖")
     L.append("")
@@ -365,6 +467,29 @@ def render_markdown(sites: list[SiteData], gap: dict, ts: str) -> str:
     L.append(f"**比對站台**：{doms}")
     L.append("")
     L.append(WARN_BLOCK)
+    L.append("")
+
+    # 0. 先讀你自己的站（主軸輪廓 — 空白候選的對齊基準）
+    L.append("## 第 0 步|先讀你自己的站")
+    L.append("")
+    if profile:
+        L.append("> 下面空白候選的「主軸對齊」標記以這份輪廓為準 — 先知道自己在打什麼，"
+                 "才不會照單全收追空白，追到主題漂移。")
+        L.append("")
+        L.append("**主打主題**（依頁數，前 10 桶）：")
+        L.append("")
+        L.append("| 主題桶 | 頁數 | 佔比 |")
+        L.append("|--------|-----:|-----:|")
+        for b, n, pct in profile["top_buckets"]:
+            L.append(f"| `{b}` | {n} | {pct}% |")
+        L.append("")
+        toks = "、".join(f"{t}({n})" for t, n in profile["tokens"])
+        L.append(f"**語彙輪廓**（slug top tokens）：{toks}")
+        L.append("")
+        L.append("> 誠實侷限：slug 語彙輪廓只抓英數字,中文網址的站輪廓會偏薄,"
+                 "語意對齊請以 AI 分群那段為準。")
+    else:
+        L.append("> ⚠ 沒給 --you,空白無法對齊你的主軸,掃出來的空白可能帶你主題漂移 — 建議加上。")
     L.append("")
 
     # 1. 抓取結果
@@ -420,18 +545,35 @@ def render_markdown(sites: list[SiteData], gap: dict, ts: str) -> str:
 
     L.append("## 5. 你的空白候選（⚠ 全部需 Keyword Planner / Ahrefs 驗證後才動筆）")
     L.append("")
+    has_align = gap.get("has_align", False)
     if gap["has_you"] and gap["you_missing"]:
-        L.append("**A. 對手有、你沒有**（對手押了你還沒卡位）：")
-        for m in gap["you_missing"][:15]:
-            L.append(f"- `{m['bucket']}` — 對手共 {m['rival_total']} 頁（{'、'.join(m['held_by'])}）")
+        L.append("**A. 對手有、你沒有**（對手押了你還沒卡位"
+                 + ("；依主軸對齊優先、同級再按對手量排" if has_align else "") + "）：")
+        L.append("")
+        if has_align:
+            L.append("| 主題桶 | 對手總頁數 | 誰有 | 主軸對齊 |")
+            L.append("|--------|-----------:|------|----------|")
+            for m in gap["you_missing"][:15]:
+                L.append(f"| `{m['bucket']}` | {m['rival_total']} | "
+                         f"{'、'.join(m['held_by'])} | {m['align']} |")
+        else:
+            for m in gap["you_missing"][:15]:
+                L.append(f"- `{m['bucket']}` — 對手共 {m['rival_total']} 頁（{'、'.join(m['held_by'])}）")
         L.append("")
     elif not gap["has_you"]:
         L.append("> 沒傳 `--you`，跳過「對手有你沒有」比對。加上自己的站再跑一次更準。")
         L.append("")
     if gap["thin_everywhere"]:
         L.append("**B. 全行業薄弱**（沒人寫透，最值錢的卡位點 — 但 sitemap 看不出有沒有需求）：")
-        for t in gap["thin_everywhere"][:15]:
-            L.append(f"- `{t['bucket']}` — 最多的站也只 {t['max_count']} 頁（{t['present_in']} 站有碰）")
+        L.append("")
+        if has_align:
+            L.append("| 主題桶 | 最多頁數 | 幾站有碰 | 主軸對齊 |")
+            L.append("|--------|---------:|---------:|----------|")
+            for t in gap["thin_everywhere"][:15]:
+                L.append(f"| `{t['bucket']}` | {t['max_count']} | {t['present_in']} | {t['align']} |")
+        else:
+            for t in gap["thin_everywhere"][:15]:
+                L.append(f"- `{t['bucket']}` — 最多的站也只 {t['max_count']} 頁（{t['present_in']} 站有碰）")
         L.append("")
 
     # 6. 新鮮度
@@ -454,7 +596,7 @@ def render_markdown(sites: list[SiteData], gap: dict, ts: str) -> str:
              "**叫它別碰搜尋量/競爭度**，那些它只會編。")
     L.append("")
     L.append("```text")
-    L.append(render_ai_prompt(sites))
+    L.append(render_ai_prompt(sites, profile))
     L.append("```")
     L.append("")
     L.append("---")
@@ -470,13 +612,20 @@ def render_markdown(sites: list[SiteData], gap: dict, ts: str) -> str:
     return "\n".join(L)
 
 
-def render_ai_prompt(sites: list[SiteData]) -> str:
+def render_ai_prompt(sites: list[SiteData], profile: dict | None = None) -> str:
     lines: list[str] = []
     lines.append("你是 SEO 內容策略分析師。下面是我和幾個對手的 sitemap URL 清單。")
-    lines.append("請只做這三件事，其他別碰：")
+    if profile:
+        lines.append("請只做這四件事，其他別碰：")
+    else:
+        lines.append("請只做這三件事，其他別碰：")
     lines.append("1. 把每個站的 URL 歸納成語意主題群（不是看路徑，是看內容主題）。")
     lines.append("2. 指出每個對手『主導』哪些主題領域。")
     lines.append("3. 指出哪些主題是『全行業都還沒寫透』的空白。")
+    if profile:
+        lines.append("4. 對每一個主題群標『與站主軸語意對齊度（高/中/低）』——")
+        lines.append("   以下面的「我的站主軸輪廓」為基準。標『低』的群請直接提醒我：")
+        lines.append("   追這個空白有主題漂移的風險，先想清楚跟主軸的關係再動筆。")
     lines.append("")
     lines.append("硬規則：")
     lines.append("- 絕對不要編搜尋量、搜尋意圖強度、競爭度、KD 這類數字 —— sitemap 裡")
@@ -484,6 +633,12 @@ def render_ai_prompt(sites: list[SiteData]) -> str:
     lines.append("- 不要排六個月內容月曆，只給我『值得驗證的主題清單』。")
     lines.append("- 對手頁數多不代表有排名，別用數量幫我做結論。")
     lines.append("")
+    if profile:
+        lines.append("我的站主軸輪廓（腳本從我自己的 sitemap 確定性算出，非猜測）：")
+        lines.append("- 主打主題（桶 / 頁數 / 佔比）：" + "、".join(
+            f"{b} {n} 頁({pct}%)" for b, n, pct in profile["top_buckets"]))
+        lines.append("- slug 語彙 top tokens：" + "、".join(t for t, _ in profile["tokens"]))
+        lines.append("")
     for s in sites:
         tag = " (這是我自己的站)" if s.is_you else ""
         lines.append(f"### {s.domain}{tag} — {len(s.urls)} 個 URL")
@@ -616,19 +771,23 @@ def main() -> int:
         print("\n[失敗] 所有站都抓不到 URL。檢查域名 / 網路 / 對方 robots 是否阻擋。", file=sys.stderr)
         return 1
 
-    gap = build_gap_view(sites)
+    # 第 0 步：先讀你自己的站（確定性主軸輪廓，空白對齊的基準）
+    you_site = next((s for s in sites if s.is_you and s.urls), None)
+    profile = you_profile(you_site) if you_site else None
+
+    gap = build_gap_view(sites, profile)
     ts = datetime.now(TW).strftime("%Y-%m-%d %H:%M (UTC+8)")
-    md = render_markdown(sites, gap, ts)
+    md = render_markdown(sites, gap, ts, profile)
 
     ai_out: str | None = None
     engine = ""
     if args.cc:
         print("用 Claude Code 訂閱（claude -p）做語意分群…")
-        ai_out = run_cc_clustering(render_ai_prompt(sites))
+        ai_out = run_cc_clustering(render_ai_prompt(sites, profile))
         engine = "Claude Code 訂閱 (claude -p)"
     elif args.ai:
         print("呼叫 Anthropic API 做語意分群…")
-        ai_out = run_ai_clustering(render_ai_prompt(sites))
+        ai_out = run_ai_clustering(render_ai_prompt(sites, profile))
         engine = "claude-sonnet-4-6 (API)"
     if ai_out:
         md += f"\n\n---\n\n## 8. AI 語意分群結果（{engine}）\n\n"
@@ -643,6 +802,7 @@ def main() -> int:
         json.dumps(
             {
                 "generated_at": ts,
+                "you_profile": profile,
                 "sites": [
                     {
                         "domain": s.domain,
