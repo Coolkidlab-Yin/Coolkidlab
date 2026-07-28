@@ -1,0 +1,17 @@
+{
+  "name": "voice-profile-extraction",
+  "version": "0.1.0",
+  "description": "語氣指紋萃取:從寫作樣本抽出 voice profile,讓 AI 寫出你的味道",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/voice-profile-extraction",
+  "license": "MIT",
+  "keywords": [
+    "voice",
+    "writing-style",
+    "content",
+    "zh-tw"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "brand-profile-lockdown",
+  "version": "0.1.0",
+  "description": "讓 AI 當品牌顧問:顧問式探討定位,鎖成 profile 檔長期用",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/brand-profile-lockdown",
+  "license": "MIT",
+  "keywords": [
+    "branding",
+    "positioning",
+    "ai-consultant",
+    "zh-tw"
+  ]
+}

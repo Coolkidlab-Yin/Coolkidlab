@@ -1,0 +1,18 @@
+{
+  "name": "family-line-bot",
+  "version": "0.1.0",
+  "description": "家族行程提醒 LINE bot 教學:一句話建行程+cron 自動提醒,免費三件套",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/family-line-bot",
+  "license": "MIT",
+  "keywords": [
+    "line-bot",
+    "reminder",
+    "fastapi",
+    "bot",
+    "zh-tw"
+  ]
+}

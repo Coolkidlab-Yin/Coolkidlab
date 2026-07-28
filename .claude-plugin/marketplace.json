@@ -14,6 +14,41 @@
       "name": "competitor-content-map",
       "source": "./plugins/competitor-content-map",
       "description": "對手內容地圖:扒公開 sitemap 看對手寫了什麼、你還缺什麼、誰在持續更新(零依賴)"
+    },
+    {
+      "name": "threads-auto-poster",
+      "source": "./plugins/threads-auto-poster",
+      "description": "Threads 自動發文 bot 教學:排程+人在迴路選題+Graph API 兩段式發文,帶你把同款建起來"
+    },
+    {
+      "name": "ig-news-bot",
+      "source": "./plugins/ig-news-bot",
+      "description": "IG 新聞圖卡 bot 教學:兩階 LLM 分工+Pillow 生圖,自動發新聞卡到 IG"
+    },
+    {
+      "name": "family-line-bot",
+      "source": "./plugins/family-line-bot",
+      "description": "家族行程提醒 LINE bot 教學:一句話建行程+cron 自動提醒,免費三件套"
+    },
+    {
+      "name": "ga4-chatgpt-referral",
+      "source": "./plugins/ga4-chatgpt-referral",
+      "description": "GA4 倒推 ChatGPT 引用來源:4 招免費 SOP 追 AI 流量歸因"
+    },
+    {
+      "name": "brand-profile-lockdown",
+      "source": "./plugins/brand-profile-lockdown",
+      "description": "讓 AI 當品牌顧問:顧問式探討定位,鎖成 profile 檔長期用"
+    },
+    {
+      "name": "voice-profile-extraction",
+      "source": "./plugins/voice-profile-extraction",
+      "description": "語氣指紋萃取:從寫作樣本抽出 voice profile,讓 AI 寫出你的味道"
+    },
+    {
+      "name": "claude-code-checkpoint-system",
+      "source": "./plugins/claude-code-checkpoint-system",
+      "description": "Claude Code 跨對話不失憶:斷點系統+hook 自建紀錄"
     }
   ]
 }
