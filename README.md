@@ -7,11 +7,27 @@ build-in-public 過程中的真實需求 — 每個工具背後都有對應的�
 
 ```
 /plugin marketplace add Coolkidlab-Yin/Coolkidlab
-/plugin install article-overlap-checker@coolkidlab
-/plugin install competitor-content-map@coolkidlab
+/plugin install article-overlap-checker@coolkidlab   # 或換成下面任一 plugin 名
 ```
 
 ## Plugins
+
+兩類:**SEO 工具**(附腳本,裝了就能跑)與 **Workflow 教學 skill**(2026-07-28 新增 7 個,
+來自 [coolkidlab.com/workflows](https://www.coolkidlab.com/workflows/) 的實戰 SOP —
+裝了之後跟 Claude Code 說「我想做 XX」,它會照 skill 的步驟帶你把同款建起來)。
+
+| Workflow skill | 一句話 | 獨立 repo |
+|---|---|---|
+| `threads-auto-poster` | Threads 自動發文 bot:排程+人在迴路選題+兩段式發文 | [repo](https://github.com/Coolkidlab-Yin/threads-auto-poster) |
+| `ig-news-bot` | IG 新聞圖卡 bot:兩階 LLM 分工+Pillow 生圖 | [repo](https://github.com/Coolkidlab-Yin/ig-news-bot) |
+| `family-line-bot` | 家族行程提醒 LINE bot:一句話建行程+cron 提醒 | [repo](https://github.com/Coolkidlab-Yin/family-line-bot) |
+| `ga4-chatgpt-referral` | GA4 倒推 ChatGPT 引用來源的 4 招免費 SOP | [repo](https://github.com/Coolkidlab-Yin/ga4-chatgpt-referral) |
+| `brand-profile-lockdown` | 讓 AI 當品牌顧問,定位鎖成 profile 檔 | [repo](https://github.com/Coolkidlab-Yin/brand-profile-lockdown) |
+| `voice-profile-extraction` | 從寫作樣本萃取語氣指紋給 AI 用 | [repo](https://github.com/Coolkidlab-Yin/voice-profile-extraction) |
+| `claude-code-checkpoint-system` | Claude Code 跨對話不失憶的斷點系統 | [repo](https://github.com/Coolkidlab-Yin/claude-code-checkpoint-system) |
+
+教學 skill 只教方法與步驟,不含任何人的帳號金鑰或個人 voice/brand profile 內容。
+交易類 workflow(市場掃描、交易日誌)依 Lab 的 YMYL 紅線不開源。
 
 ### article-overlap-checker — 文章撞稿檢查
 
