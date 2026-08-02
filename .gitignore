@@ -1,0 +1,10 @@
+# 外掛腳本在使用者機器上跑出來的產物,不進版控。
+# 用不綁層級的寫法,腳本從哪一層跑起來都擋得住。
+outputs/
+maps/
+report.md
+competitors.txt
+
+__pycache__/
+*.pyc
+.env
