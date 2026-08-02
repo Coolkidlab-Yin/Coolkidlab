@@ -18,12 +18,14 @@
     2. lastmod 全站同日 = sitemap generator 自動填的假新鮮，別被騙。
     3. 對手掛 100 篇 blog 不代表 100 篇有排名，數量多別焦慮。
 
-Usage:
-    python scripts/competitor_sitemap_map.py --vs rival1.com rival2.com rival3.com
-    python scripts/competitor_sitemap_map.py --you www.your-site.com --vs rival1.com rival2.com
-    python scripts/competitor_sitemap_map.py --config scripts/competitors.txt
-    python scripts/competitor_sitemap_map.py --vs rival1.com --cc   # 訂閱跑分群，免 API key（推薦）
-    python scripts/competitor_sitemap_map.py --vs rival1.com --ai   # 改走 API，需 ANTHROPIC_API_KEY
+Usage（獨立 repo 的腳本在根目錄；plugin 版在 scripts/ 底下，路徑自行對應）:
+    python competitor_sitemap_map.py --vs rival1.com rival2.com --out ./maps
+    python competitor_sitemap_map.py --you www.your-site.com --vs rival1.com --out ./maps
+    python competitor_sitemap_map.py --config competitors.txt --out ./maps
+    python competitor_sitemap_map.py --vs rival1.com --cc   # 用 claude CLI 跑分群
+    python competitor_sitemap_map.py --vs rival1.com --ai   # 改走 API，需 ANTHROPIC_API_KEY
+
+--out 收的是「輸出資料夾」不是檔名。
 
 --config 檔：一行一個域名，# 開頭為註解，行尾加 ` you` 標記自己的站。
 
@@ -55,7 +57,13 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-ROOT = Path(__file__).resolve().parent.parent
+_HERE = Path(__file__).resolve().parent
+# 兩種布局都要支援:plugin 版在 skills/<name>/scripts/ 底下(往上一層才是根),
+# 獨立 repo 版腳本就在根目錄。判錯的話產物會寫到使用者的「上一層」目錄。
+# 光看資料夾叫不叫 scripts 不夠 —— 使用者把腳本丟進自家 scripts/ 也會命中。
+# 要上一層真的有 SKILL.md(plugin 布局的特徵)才往上跳。
+_IS_PLUGIN_LAYOUT = _HERE.name == "scripts" and (_HERE.parent / "SKILL.md").exists()
+ROOT = _HERE.parent if _IS_PLUGIN_LAYOUT else _HERE
 OUT_DIR = ROOT / "outputs" / "sitemap-maps"
 
 USER_AGENT = "Mozilla/5.0 (compatible; competitor-content-map/1.0; +https://github.com/Coolkidlab-Yin/Coolkidlab)"
@@ -742,7 +750,16 @@ def main() -> int:
     rivals = list(args.vs)
     you = args.you
     if args.config:
-        cfg_rivals, cfg_you = load_config(Path(args.config))
+        cfg_path = Path(args.config)
+        # 設定檔不存在是使用者打錯路徑,給人話不要吐 traceback。
+        if not cfg_path.is_file():
+            print(
+                f"找不到設定檔:{cfg_path}\n"
+                f"  先從範本複製一份:cp examples/competitors.txt.example competitors.txt",
+                file=sys.stderr,
+            )
+            return 2
+        cfg_rivals, cfg_you = load_config(cfg_path)
         rivals.extend(cfg_rivals)
         you = you or cfg_you
 
@@ -794,7 +811,7 @@ def main() -> int:
         md += "> ⚠ 以下主題清單仍需 Keyword Planner / Ahrefs 驗證搜尋量後才動筆。\n\n"
         md += ai_out + "\n"
 
-    stamp = datetime.now(TW).strftime("%Y%m%d-%H%M")
+    stamp = datetime.now(TW).strftime("%Y%m%d-%H%M%S")  # 到秒,同一分鐘連跑兩次才不會互蓋
     md_path = out_dir / f"map-{stamp}.md"
     json_path = out_dir / f"data-{stamp}.json"
     md_path.write_text(md, encoding="utf-8")

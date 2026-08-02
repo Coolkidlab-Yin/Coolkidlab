@@ -21,18 +21,24 @@ description: >
 工具在 `scripts/competitor_sitemap_map.py`,純 Python 標準庫,無需安裝任何東西:
 
 ```bash
-# 基本:給對手域名
-python scripts/competitor_sitemap_map.py --vs rival1.com rival2.com --out map.md
+# 基本:給對手域名。⚠ --out 收的是「輸出資料夾」不是檔名 ——
+# 給 map.md 會建出一個叫 map.md 的資料夾;該名稱若已是檔案則直接報錯
+python scripts/competitor_sitemap_map.py --vs rival1.com rival2.com --out ./maps
 
 # 加上自己的站,覆蓋矩陣會多一欄「你有沒有寫」
-python scripts/competitor_sitemap_map.py --you www.your-site.com --vs rival1.com rival2.com
+python scripts/competitor_sitemap_map.py --you www.your-site.com --vs rival1.com rival2.com --out ./maps
 
 # 域名多時用設定檔:一行一個域名,# 開頭為註解,行尾加 ` you` 標記自己的站
-python scripts/competitor_sitemap_map.py --config competitors.txt
+# 先複製範本:cp examples/competitors.txt.example competitors.txt
+python scripts/competitor_sitemap_map.py --config competitors.txt --out ./maps
 
-# 讓 AI 接手語意分群:--cc 走 Claude Code 訂閱(免 API key,推薦),--ai 走 API
-python scripts/competitor_sitemap_map.py --vs rival1.com --cc
+# 讓 AI 接手語意分群:--cc 走 Claude Code 訂閱(不必另外辦 API key,
+# 但要有 claude CLI 且已登入),--ai 走 API(需 pip install anthropic + API key)
+python scripts/competitor_sitemap_map.py --vs rival1.com --cc --out ./maps
 ```
+
+省略 `--out` 時預設寫到 skill 目錄下的 `outputs/sitemap-maps/`。
+檔名帶到秒的時間戳,同一個資料夾可以一直累積。
 
 ## 三段分工(核心原則:別讓 AI 編數字)
 

@@ -3,8 +3,9 @@
 # 用法：
 #   1. 複製這個檔案，改名成 competitors.txt（放哪裡都行）
 #   2. 把下面的佔位符換成真實域名
-#   3. 執行：
-#      python scripts/competitor_sitemap_map.py --config path/to/competitors.txt
+#   3. 執行（腳本路徑看你怎麼取得的）：
+#      獨立 repo：python competitor_sitemap_map.py --config competitors.txt --out ./maps
+#      plugin 版：python scripts/competitor_sitemap_map.py --config competitors.txt --out ./maps
 #
 # 格式規則（以腳本 load_config 實際行為為準）：
 #   - 一行一個域名，不用加 https://（加了也可以，腳本會自己補協定）

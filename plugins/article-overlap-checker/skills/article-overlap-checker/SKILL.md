@@ -23,9 +23,15 @@ description: >
 # 本機 HTML 資料夾(建議掃整個站的輸出目錄,只掃子資料夾會高估孤島)
 python scripts/semantic_map.py --dir <網站輸出資料夾> --out report.md
 
-# 或直接掃線上 sitemap(會逐頁下載,頁多時較慢)
-python scripts/semantic_map.py --sitemap https://example.com/sitemap.xml --out report.md
+# 或直接掃線上 sitemap(逐頁下載,實測 130 頁約 7 分鐘 —— 掃本機快得多)
+python scripts/semantic_map.py --sitemap https://your-site.com/sitemap.xml --out report.md
 ```
+
+**成功長這樣**:終端印 `報告已寫入 report.md`,報告首行是 `# 語意地圖報告(N 頁)`。
+
+回報給使用者前先看一眼 stderr:sitemap 模式下每頁會印 `fetched` 或 `skip`,
+**大量 skip 代表報告只涵蓋部分頁面,結論不可信** —— 這時要跟使用者講,
+不要拿一份殘缺的地圖下結論。
 
 ## 讀報告的原則(重要,回報給使用者時要帶到)
 
