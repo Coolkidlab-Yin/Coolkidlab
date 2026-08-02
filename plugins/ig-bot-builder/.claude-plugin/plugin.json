@@ -1,0 +1,19 @@
+{
+  "name": "ig-bot-builder",
+  "version": "0.1.0",
+  "description": "IG 發文 bot 建造器:主題不限(新聞/知識圖卡/作品集/商品/語錄/活動),含憑證陪走、生圖與兩段式發布",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/ig-bot-builder",
+  "license": "MIT",
+  "keywords": [
+    "instagram",
+    "automation",
+    "social-media",
+    "bot",
+    "content-automation",
+    "zh-tw"
+  ]
+}

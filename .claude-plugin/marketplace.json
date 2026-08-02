@@ -16,19 +16,19 @@
       "description": "對手內容地圖:扒公開 sitemap 看對手寫了什麼、你還缺什麼、誰在持續更新(零依賴)"
     },
     {
-      "name": "threads-auto-poster",
-      "source": "./plugins/threads-auto-poster",
-      "description": "Threads 自動發文 bot 教學:排程+人在迴路選題+Graph API 兩段式發文,帶你把同款建起來"
+      "name": "threads-bot-builder",
+      "source": "./plugins/threads-bot-builder",
+      "description": "Threads 發文 bot 建造器:內容來源不限(新聞/存稿/長文改寫/策展/留言回應),人在迴路設計,含憑證陪走與兩段式發文"
     },
     {
-      "name": "ig-news-bot",
-      "source": "./plugins/ig-news-bot",
-      "description": "IG 新聞圖卡 bot 教學:兩階 LLM 分工+Pillow 生圖,自動發新聞卡到 IG"
+      "name": "ig-bot-builder",
+      "source": "./plugins/ig-bot-builder",
+      "description": "IG 發文 bot 建造器:主題不限(新聞/知識圖卡/作品集/商品/語錄/活動),含憑證陪走、生圖與兩段式發布"
     },
     {
-      "name": "family-line-bot",
-      "source": "./plugins/family-line-bot",
-      "description": "家族行程提醒 LINE bot 教學:一句話建行程+cron 自動提醒,免費三件套"
+      "name": "line-bot-builder",
+      "source": "./plugins/line-bot-builder",
+      "description": "LINE bot 建造器:用途不限(客服/預約/提醒/教練打卡/通知/內部工具),含憑證陪走、驗簽與推播去重"
     },
     {
       "name": "ga4-chatgpt-referral",

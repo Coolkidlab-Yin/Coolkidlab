@@ -1,0 +1,19 @@
+{
+  "name": "threads-bot-builder",
+  "version": "0.1.0",
+  "description": "Threads 發文 bot 建造器:內容來源不限(新聞/存稿/長文改寫/策展/留言回應),人在迴路設計,含憑證陪走與兩段式發文",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/threads-bot-builder",
+  "license": "MIT",
+  "keywords": [
+    "threads",
+    "automation",
+    "social-media",
+    "bot",
+    "content-automation",
+    "zh-tw"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "line-bot-builder",
+  "version": "0.1.0",
+  "description": "LINE bot 建造器:用途不限(客服/預約/提醒/教練打卡/通知/內部工具),含憑證陪走、驗簽與推播去重",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/line-bot-builder",
+  "license": "MIT",
+  "keywords": [
+    "line-bot",
+    "line-messaging-api",
+    "chatbot",
+    "automation",
+    "webhook",
+    "zh-tw"
+  ]
+}
