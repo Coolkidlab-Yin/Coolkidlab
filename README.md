@@ -18,9 +18,9 @@ build-in-public 過程中的真實需求 — 每個工具背後都有對應的�
 
 | Workflow skill | 一句話 | 獨立 repo |
 |---|---|---|
-| `threads-auto-poster` | Threads 自動發文 bot:排程+人在迴路選題+兩段式發文 | [repo](https://github.com/Coolkidlab-Yin/threads-auto-poster) |
-| `ig-news-bot` | IG 新聞圖卡 bot:兩階 LLM 分工+Pillow 生圖 | [repo](https://github.com/Coolkidlab-Yin/ig-news-bot) |
-| `family-line-bot` | 家族行程提醒 LINE bot:一句話建行程+cron 提醒 | [repo](https://github.com/Coolkidlab-Yin/family-line-bot) |
+| `threads-bot-builder` | Threads 發文 bot 建造器:內容來源不限,人在迴路+兩段式發文 | [repo](https://github.com/Coolkidlab-Yin/threads-bot-builder) |
+| `ig-bot-builder` | IG 發文 bot 建造器:主題不限,含生圖與兩段式發布 | [repo](https://github.com/Coolkidlab-Yin/ig-bot-builder) |
+| `line-bot-builder` | LINE bot 建造器:用途不限,含驗簽與推播去重 | [repo](https://github.com/Coolkidlab-Yin/line-bot-builder) |
 | `ga4-chatgpt-referral` | GA4 倒推 ChatGPT 引用來源的 4 招免費 SOP | [repo](https://github.com/Coolkidlab-Yin/ga4-chatgpt-referral) |
 | `brand-profile-lockdown` | 讓 AI 當品牌顧問,定位鎖成 profile 檔 | [repo](https://github.com/Coolkidlab-Yin/brand-profile-lockdown) |
 | `voice-profile-extraction` | 從寫作樣本萃取語氣指紋給 AI 用 | [repo](https://github.com/Coolkidlab-Yin/voice-profile-extraction) |
