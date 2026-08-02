@@ -1,7 +1,7 @@
 {
   "name": "article-overlap-checker",
   "description": "文章撞稿檢查:找出網站裡互搶排名的相似文章(keyword cannibalization)、沒有內鏈的孤島頁。掃 HTML 資料夾或 sitemap,TF-IDF 相似度報告,純標準庫零依賴。",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "coolkid",
     "url": "https://www.coolkidlab.com"

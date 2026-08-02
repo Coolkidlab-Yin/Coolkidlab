@@ -1,5 +1,6 @@
 {
   "name": "coolkidlab",
+  "description": "Coolkid AI Lab 的繁中實戰工具與 Agent 引導 Skills：提供可靠的決策框架、執行邊界與驗收方式，讓 Agent 依使用者現場補完。",
   "owner": {
     "name": "coolkid",
     "url": "https://www.coolkidlab.com"
@@ -18,17 +19,17 @@
     {
       "name": "threads-bot-builder",
       "source": "./plugins/threads-bot-builder",
-      "description": "Threads 發文 bot 建造器:內容來源不限(新聞/存稿/長文改寫/策展/留言回應),人在迴路設計,含憑證陪走與兩段式發文"
+      "description": "Threads bot 建造引導：由 Agent 依內容來源與環境補完，保留 dry-run、人工批准、去重與可靠發布邊界"
     },
     {
       "name": "ig-bot-builder",
       "source": "./plugins/ig-bot-builder",
-      "description": "IG 發文 bot 建造器:主題不限(新聞/知識圖卡/作品集/商品/語錄/活動),含憑證陪走、生圖與兩段式發布"
+      "description": "Instagram bot 建造引導：由 Agent 依素材與 repo 補完，保留圖像驗證、人工批准、去重與 container 發布邊界"
     },
     {
       "name": "line-bot-builder",
       "source": "./plugins/line-bot-builder",
-      "description": "LINE bot 建造器:用途不限(客服/預約/提醒/教練打卡/通知/內部工具),含憑證陪走、驗簽與推播去重"
+      "description": "LINE bot 建造引導：先選必要元件，再由 Agent 補完 webhook、路由、逐收件人 outbox 與部署"
     },
     {
       "name": "ga4-chatgpt-referral",

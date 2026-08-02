@@ -1,7 +1,7 @@
 {
   "name": "ig-bot-builder",
-  "version": "0.1.0",
-  "description": "IG 發文 bot 建造器:主題不限(新聞/知識圖卡/作品集/商品/語錄/活動),含憑證陪走、生圖與兩段式發布",
+  "version": "1.0.0",
+  "description": "Instagram bot 建造引導：由 Agent 依素材與 repo 補完，保留圖像驗證、人工批准、去重與 container 發布邊界",
   "author": {
     "name": "coolkid",
     "url": "https://www.coolkidlab.com"
