@@ -1,100 +1,163 @@
 ---
 name: ga4-chatgpt-referral
 description: >
-  GA4 看到 chatgpt.com referral 之後的倒推來源 SOP。當使用者說「GA4 出現
-  chatgpt.com 的流量」「想知道 ChatGPT 為什麼引用我的文章」「想追蹤 AI
-  引用流量」,或在做 GEO(生成式引擎優化)歸因、想驗證自己的內容有沒有
-  被 ChatGPT / AI 搜尋引用時使用。核心是 4 招免費工具側面推導:GA4 探索
-  報表、GSC 反向、Bing Webmaster Tools、反向 ChatGPT 無痕驗證。
+  用 GA4 到達網頁與工作階段 referral、OpenAI 的 ChatGPT referral 標記與
+  OAI-SearchBot、Bing Webmaster Tools AI Performance，以及無記憶反向搜尋，建立
+  ChatGPT／AI 引用流量的證據表。當使用者在 GA4 看到 chatgpt.com、要查哪些頁面收到
+  ChatGPT 流量、驗證內容是否可能被 AI 搜尋引用或建立 GEO 追蹤時使用；輸入為網域、日期範圍
+  與可用平台資料，輸出為已觀測事實、旁證、推論信心與 30 天追蹤表，永遠不宣稱還原原始 prompt。
 ---
 
-# GA4 ChatGPT referral 倒推來源(ga4-chatgpt-referral)
+# GA4 ChatGPT referral 倒推來源
 
-## 什麼時候用
+## 引導邊界
 
-- GA4 報表突然出現來自 `chatgpt.com` 的 referral,想知道「對方在 ChatGPT 問了什麼才被導過來」
-- 想建立一套持續追蹤「哪些內容被 AI 引用」的免費工具流
-- 在做 GEO 歸因:想倒推自己的哪些主題容易被 ChatGPT 搜尋引用
+本 Skill 提供證據分級與調查順序，不假設每個帳號都有相同平台或資料。執行
+Agent 應使用現有證據、補查當下官方來源，缺少的資料就降級信心，不硬湊完整答案。
 
-適用對象是非工程師也能跑的免費工具組合(GA4 + Google Search Console + Bing Webmaster Tools + ChatGPT 本身),不需要付費分析工具。
+## 適用與不適用
 
-## 原理:referral 能告訴你什麼、不能告訴你什麼
+適用：GA4 已看到 `chatgpt.com` 來源、想定位到達頁與互動；檢查 ChatGPT 搜尋的可發現性；
+建立可重複的 AI citation 旁證追蹤。
 
-**能告訴你的**:瀏覽器送出的 HTTP Referer header 會讓 GA4 知道這筆流量「來自 chatgpt.com」,搭配到達網頁維度,可以知道 AI 來的訪客落在哪一頁、停多久、觸發了哪些事件。
+不適用：
 
-**不能告訴你的**:瀏覽器的 Referrer-Policy 預設是 `strict-origin-when-cross-origin` —— 跨站只傳 host(chatgpt.com),沒有完整 path、沒有 query。這是業界標準,**拿不到也繞不過**,你永遠看不到使用者在 ChatGPT 裡問了什麼 prompt。
+- 還原使用者在 ChatGPT 輸入的原始 prompt、完整對話 URL 或個人身分。
+- 只靠一次無痕搜尋證明「ChatGPT 一定會引用」或解釋排名機制。
+- 把 Bing 的 AI citation、Google AI 搜尋曝光或第三方 bot crawl 當成 ChatGPT 直接證據。
+- 在 GA4 未正常收資料時做歸因；先修資料收集與 consent 問題。
 
-所以這套 SOP 做的是**側面推導**,不是直接觀測。帶使用者操作時,不要承諾「找出那個 prompt」,只能承諾「縮小範圍、推出最可能的引用情境」。
+## 核心證據分級
 
-另外,chatgpt.com referral 跟一般 referral 技術上完全一樣(都是 HTTP Referer header)。差別在「來源是 AI 對話」這件事改變了優化策略 —— 不能像 Google search 那樣盯 keyword,要倒推「ChatGPT 為什麼引用我」,常見關聯因素是 quotable block、FAQPage schema、數字精確且有來源標註。
+| 等級 | 可接受證據 | 可說的話 |
+|---|---|---|
+| A 直接流量證據 | GA4 工作階段來源含 `chatgpt.com`，並定位到 landing page；OpenAI 官方說 referral URL 自動帶 `utm_source=chatgpt.com` | 「這個頁面收到 ChatGPT referral 工作階段」 |
+| B 平台 citation 證據 | Bing AI Performance 顯示某 URL 被支援的 AI surfaces 引用 | 「該頁在 Microsoft/Bing/select partners 的支援範圍被引用」 |
+| C 反向觀測 | 無登入／無記憶環境下，ChatGPT 搜尋回答當次列出本站 URL | 「這個測試條件下觀測到引用」 |
+| D 推論 | 由 landing page 主題、平台訊號與重複測試推測可能問題類型 | 「最可能的引用情境是……，未確認原 prompt」 |
 
-## 開始前先問環境
+不要把 B、C、D 升格成 A，也不要把任何等級寫成原 prompt 的證據。
 
-依序確認,缺哪個就先補哪個:
+## 開始前輸入
 
-1. GA4 是否已正常收資料
-2. 有沒有接 Google Search Console
-3. Bing Webmaster Tools 註冊了沒
+先取得：
 
-確認完再進 SOP,每做完一招停下來跟使用者確認結果,再進下一招。
+1. 網域、GA4 property、property 時區、要分析的起訖日期。
+2. 至少一個起始訊號：`chatgpt.com` 工作階段來源、相關 landing page，或 OpenAI UTM referral。
+3. GA4 唯讀權限；可選的 Bing Webmaster Tools 與 Search Console 唯讀權限。
+4. 要追蹤的互動指標：sessions、engaged sessions、平均 engagement time、key events。
+5. 匯出目的地：使用者指定的試算表／CSV；不得包含 client ID、user ID、IP 或事件級個資。
 
-## 4 招 SOP
+若使用者只提供截圖，要求日期範圍、時區、篩選條件與資料品質圖示一起入鏡，並先遮蔽帳號、
+property ID 與任何個資。
 
-### 招一:GA4 探索報表 —— 看 AI 訪客落在哪頁
+## 執行模式
 
-GA4 → 探索 → 建空白報表:
+有已授權的瀏覽器或分析 connector 時，agent 直接做唯讀查詢、匯出彙總數字與建立證據表；
+不要要求使用者重做 agent 能完成的點擊。沒有存取權時，逐步引導使用者操作，等取得每一步的
+實際結果再繼續。不得修改 GA4 property、發布報表、改 robots.txt 或代表使用者登入。
 
-- **維度**:工作階段來源/媒介、到達網頁、事件名稱
-- **指標**:工作階段、平均參與時間
-- **篩選**:「工作階段來源/媒介」完全比對 `chatgpt.com / referral`
+## 四段 SOP
 
-跑出來就能看到每一筆 AI 來的訪客落在哪一頁、停多久、觸發哪些事件。
+### 1. GA4：定位 ChatGPT 工作階段與到達頁
 
-**流量小的站注意**:單筆(或極少量)referral 在探索報表會被 GA4 的隱私閾值直接擋成「無資料」。遇到這情況不要去 debug 篩選條件 —— 改走**標準報表:報表 → 客戶開發 → 流量開發**,搜尋 `chatgpt`,就能繞過閾值看到資料。
+| 動作 | 為什麼 | 通過判準 |
+|---|---|---|
+| 開啟 `Reports > Acquisition > Traffic acquisition`，把主維度改為 `Session source / medium`，搜尋 `chatgpt` | Traffic acquisition 是 session scope，適合確認每次造訪來源 | 表中出現 `chatgpt.com` 相關列，且日期與 property 時區已記錄 |
+| 加入次維度 `Landing page + query string`；或在 `Reports > Engagement > Landing page` 加 `Session source / medium` 次維度後篩選 `chatgpt` | 把來源連到第一個到達頁，而不是混用任意 page view | 每列有 landing page、sessions 與至少一個 engagement 指標 |
+| 檢查右上角 data quality indicator，記錄 threshold、sampling、`(other)` 或資料處理警示 | 標準報表與 explorations 都可能受限制，不能假設換報表就繞過 | 警示狀態寫入證據表；有警示時把數字標成受限 |
+| 若找不到資料，擴大日期範圍並等待 GA4 一般處理時間後重查；仍無資料就記為「未觀測」 | 低量、處理延遲、篩選或 consent 都可能造成差異 | 只在實際看到列時宣稱 referral；空白不等於沒有流量 |
 
-### 招二:Google Search Console 反向 —— 推哪些主題容易被引用
+**不得再使用的說法**：「探索被 threshold 擋時，改標準報表就能繞過」。Google 官方明確說
+reports 與 explorations 都可能受 data threshold。標準報表可作交叉檢查，但不是保證繞過。
 
-用 `site:` 加上使用者的網域,搭配曾出現 AI Overviews 的查詢,反推哪些主題容易被 AI 引用。這招看的是「Google 端的 AI 露出訊號」,跟 chatgpt.com referral 不是同一條管道,只能當旁證。
+### 2. OpenAI：驗證可追蹤性與搜尋 crawler
 
-### 招三:Bing Webmaster Tools —— ChatGPT 搜尋的資料源
+| 動作 | 為什麼 | 通過判準 |
+|---|---|---|
+| 在 GA4 檢查 session source 是否為 `chatgpt.com`，並在可用的 URL／campaign 維度確認 `utm_source=chatgpt.com` 訊號 | OpenAI 官方說 ChatGPT 搜尋 referral URL 會自動帶此 UTM | 把 UTM 或 session source 記為直接流量證據；沒看到就不補造 |
+| 讀取網站公開 `robots.txt`，確認 `OAI-SearchBot` 未被阻擋 | OpenAI 指出允許此 crawler 有助內容被 ChatGPT 搜尋發現、摘要與引用 | 記錄檢查日期與 allow/disallow；不自行修改 robots.txt |
+| 將 `GPTBot` 與 `OAI-SearchBot` 分開記錄 | OpenAI 將潛在訓練控制與搜尋可發現性分開 | 報告不以 GPTBot 狀態推論搜尋引用，也不以 OAI-SearchBot 推論訓練 |
 
-ChatGPT 搜尋的資料源大半來自 Bing,所以 Bing 端的收錄與爬取狀態是重要訊號:
+允許 crawler 只代表技術可發現性，不保證抓取、索引、引用或流量。
 
-1. 註冊 Bing Webmaster Tools
-2. 用 **Import from GSC** 把 Search Console 資料匯入(不用重新驗證網站)
-3. 等收錄後,看 crawl stats
+### 3. Bing Webmaster Tools：讀 AI Performance，但限制證據範圍
 
-Bing 的 crawl stats 還能看到「哪個 bot 抓了哪頁」—— 包括 ClaudeBot(Anthropic 爬蟲)、PerplexityBot 這些 AI 爬蟲,因為它們會被 Bing 的 search index pipeline 看到。Google Search Console 看不到這份資料,Bing 反而有。
+| 動作 | 為什麼 | 通過判準 |
+|---|---|---|
+| 開啟 Bing Webmaster Tools 的 `AI Performance`；若帳戶尚未顯示，記錄 public preview 未可用 | 2026 功能提供 AI citation 與 cited pages 等聚合訊號 | 記錄介面可用性、日期範圍與資料是否為 sample |
+| 匯出 total citations、cited pages、page-level citation activity 與可見的 grounding queries | 這些是 Microsoft 官方定義的可觀測欄位 | 每個值保留 URL、日期範圍與匯出日期，不補缺值 |
+| 將平台欄標成 `Microsoft Copilot / Bing AI summaries / select partners` | 官方支援範圍不是「所有 AI」，也未承諾等於 ChatGPT | 報告明確寫「Bing 平台旁證，非 ChatGPT 直接證據」 |
 
-### 招四:反向 ChatGPT 驗證 —— 自己扮演路人查一次
+Bing Webmaster Tools 的 crawl / Site Explorer 是 Bingbot 的索引與抓取資料，不會替你顯示
+`ClaudeBot` 或 `PerplexityBot` 的伺服器存取紀錄。要查第三方 crawler，必須在有合法權限的自家
+server/CDN logs 依 user-agent 查證；沒有 logs 就標「不可觀測」。
 
-反過來自己用 ChatGPT 的搜尋模式,下「真實使用者會問的問題」,看回答的引用來源有沒有使用者的網域。
+### 4. 無記憶反向驗證：觀測可重現性
 
-操作紅線(每一條都會讓結果失真,帶使用者跑時要主動提醒):
+| 動作 | 為什麼 | 通過判準 |
+|---|---|---|
+| 使用無痕／全新 browser profile，登出 ChatGPT，清除先前對話與 memory 影響 | 降低個人化與既有對話污染；不能消除地區、時間與模型差異 | 測試環境、日期、地區／語言與 ChatGPT 模式已記錄 |
+| 從 landing page 的問題空間設計 3–5 個不含品牌名、URL 或期待答案的真實問題 | 帶品牌名會變成導航測試，無法反映自然發現 | 每題可由一般使用者自然提出，且沒有提示本站 |
+| 明確啟用可搜尋網路並逐題保存回答中的 cited URLs | 只有實際顯示的引用能作當次觀測 | 每題記錄「命中／未命中」、引用 URL、時間與可分享的非敏感證據 |
+| 不同日期重複同一測試集，至少形成多次觀測後才談趨勢 | 回答、索引與檢索具有變動性，單次結果不可泛化 | 報告分開列每次觀測，不用單次命中計算不存在的引用率承諾 |
 
-- **一定要開無痕視窗**。平常登入著 ChatGPT,memory 會記得你是誰、偏好你的站,結果失真。
-- **query 不帶品牌名**,要像真的路人在問。
-- **用會觸發 retrieval 的 prompt**,例如「`<主題>` latest research 2026」「`<關鍵字>` case study with sources」。ChatGPT 只有在用 web search 時才會引用來源,純對話模式不會。
-- **連續測幾週看趨勢**。單次命中或沒中都不準。
+這仍是黑箱輸出觀測。即使命中，也只能知道「這次回答引用某 URL」，不能知道真實使用者曾輸入
+什麼，不能證明所有使用者都會看到同一來源。
 
-### 收尾:30 天追蹤
+## 明確產出：30 天證據表
 
-四招建完不是結束。把每筆 chatgpt.com referral 的「日期、到達網頁、停留時間」記成一張簡單的表(試算表就夠),累積 30 天後回頭看:哪些主題被 AI 持續引用、哪些只中過一次。持續被引用的主題就是「AI 覺得你可信的領域」— 下一批內容往那裡加碼,比猜題有依據。
+每列保留：
 
-## 我踩過的坑
+```text
+observed_at | source_surface | evidence_grade | date_range | landing_or_cited_url |
+sessions_or_citations | engagement | test_query_category | result | limitations | evidence_link
+```
 
-1. **想抓使用者的 prompt 或完整網址** —— Referrer-Policy 的限制,拿不到也繞不過。別浪費時間找繞道,直接做側面推導。
-2. **單筆 referral 在探索報表顯示「無資料」** —— 不是設定錯,是隱私閾值。改走「報表 → 客戶開發 → 流量開發」。
-3. **登入狀態下做反向驗證** —— ChatGPT memory 會偏向你自己的站,命中了也不代表路人查得到。
-4. **query 帶品牌名** —— 等於作弊,測不出自然引用。
-5. **單次驗證就下結論** —— 命中或沒中都是雜訊,趨勢才是訊號。
+- `test_query_category` 寫問題類型摘要，不把推測冒充原 prompt。
+- `sessions_or_citations` 保留平台原始定義；不要把 GA4 sessions 與 Bing citations 相加。
+- `evidence_link` 只放使用者有權限的內部證據位置；不要建立公開分享連結。
 
-## 誠實邊界(哪些是推測、不是實證)
+通過判準：每個結論可回指至少一列，且句子使用與證據等級一致的「觀測／旁證／推論」措辭。
 
-這一節照實告訴使用者,不要把推測講成事實:
+## 停止條件與排錯
 
-- **「ChatGPT 搜尋資料源大半來自 Bing」是業界普遍認知,不是官方公開的保證**。Bing 端訊號是強旁證,不是引用的直接證據。
-- **招二(GSC / AI Overviews)是相關性推導**:某主題出現在 AI Overviews 不等於 ChatGPT 也引用了它,兩個是不同系統。
-- **「為什麼被引用」的歸因(quotable block、FAQPage schema、數字精確)是觀察到的關聯,不是經過控制變因的實驗結論**。
-- **免費三件套(GA4 + GSC + Bing)的歸因精度是經驗估計**,適合流量小、預算為零的個人站;中大型站或隱私優先的 EU 站,可評估 Plausible 這類付費工具。
-- 這整套 SOP 的產出是「最可能的引用情境」,**永遠無法還原真實 prompt**。回報結果時用「推測」「旁證」這類詞,不要寫成「已確認」。
+- GA4 沒有資料品質圖示、日期或時區資訊：停止比較數字，先補齊查詢脈絡。
+- Reports 或 Explorations 顯示 threshold：不得宣稱另一介面保證繞過；擴大日期、移除 demographic／audience 維度，或在已設定且有權限時評估 BigQuery 匯出。
+- GA4 空白但 OpenAI UTM 已知存在：檢查 tag、consent、redirect 是否保留 query、日期處理延遲；結果仍只寫「GA4 未觀測」。
+- Traffic acquisition 找不到：GA4 collection 可被自訂；請有 Editor 權限者加回報表，或用 Explore 建相同 session-scope 維度。不要擅自更改 property。
+- Bing AI Performance 不可用或無資料：記為 public preview 未可用／未觀測，不改用 crawl stats 假裝 AI citation。
+- 反向測試沒有引用：記為當次未命中，不等於網站永遠不會被引用。
+- 任何步驟要求 prompt、使用者 ID、IP 或事件級個資：停止蒐集，改用彙總資料。
+
+## 完成定義
+
+- GA4 已列出日期、時區、`Session source / medium`、landing page、sessions 與資料品質狀態。
+- OpenAI crawler／UTM 檢查有日期與可觀測結果，沒有把 crawler allow 寫成引用保證。
+- Bing 結果只歸因到官方支援的 Microsoft/Bing/select partners surfaces。
+- 無記憶測試保存題目類型、環境與每次 cited URL；未把單次結果泛化。
+- 每個結論標 A–D 證據等級；推論與事實分開。
+- 最終明示：**原始 prompt 永遠無法由這套方法還原**。
+
+## 安全與侷限
+
+- 全程採唯讀、最小權限；不要索取密碼、cookie、API key 或 GA4 client/user ID。
+- 匯出與截圖先去識別；不要把分析資料上傳到未授權的第三方服務。
+- HTTP `Referer` 可能因 referrer policy、瀏覽器、app webview、redirect 或使用者設定而缺失或只剩 origin；沒有 referral 不能證明沒有 ChatGPT 點擊。
+- `utm_source=chatgpt.com` 是 OpenAI 對 ChatGPT 搜尋 referral 的官方標記，但實際 GA4 歸因仍受標記保留、tag 與 consent 影響。
+- Bing AI Performance 是聚合且可能抽樣的 public preview；citation 不代表排名、權威或在回答中的位置。
+- 無痕模式只能降低個人化污染，不能固定模型版本、索引、地區、語言或時間差異。
+
+## 來源與時效
+
+以下皆為一手官方文件，於 **2026-08-02** 查證：
+
+- Google Analytics：Traffic acquisition report 及 session 維度：https://support.google.com/analytics/answer/12923437
+- Google Analytics：Landing page report 與來源次維度：https://support.google.com/analytics/answer/12931766
+- Google Analytics：reports / explorations data thresholds：https://support.google.com/analytics/answer/9383630
+- Google Analytics：Explorations 的 sampling 與 threshold：https://support.google.com/analytics/answer/7579450
+- OpenAI：Publishers and Developers FAQ（`OAI-SearchBot`、`utm_source=chatgpt.com`）：https://help.openai.com/en/articles/12627856-publishers-and-developers-faq
+- Microsoft Bing：AI Performance public preview 與支援範圍：https://blogs.bing.com/webmaster/February-2026/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview
+- Bing Webmaster Tools：Site Explorer 是 Bing 抓取／索引資料：https://www.bing.com/webmasters/help/site-explorer-c680da37
+- W3C Referrer Policy 規格：https://www.w3.org/TR/referrer-policy/
+- 獨立 repo README：https://github.com/Coolkidlab-Yin/ga4-chatgpt-referral

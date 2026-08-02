@@ -1,7 +1,7 @@
 {
   "name": "threads-bot-builder",
-  "version": "0.1.0",
-  "description": "Threads 發文 bot 建造器:內容來源不限(新聞/存稿/長文改寫/策展/留言回應),人在迴路設計,含憑證陪走與兩段式發文",
+  "version": "1.0.0",
+  "description": "Threads bot 建造引導：由 Agent 依內容來源與環境補完，保留 dry-run、人工批准、去重與可靠發布邊界",
   "author": {
     "name": "coolkid",
     "url": "https://www.coolkidlab.com"

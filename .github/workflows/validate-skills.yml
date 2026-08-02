@@ -1,0 +1,60 @@
+name: Validate skills
+
+on:
+  # pull_request_target keeps this workflow and validator on the trusted base ref.
+  # The PR checkout is treated as data and none of its scripts are executed.
+  pull_request_target:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  pull-request-static:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out trusted validator
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Check out pull request as data
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate candidate without executing it
+        run: python trusted/scripts/validate_skills.py --root candidate
+
+  trusted-push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Static validation and runtime smoke
+        run: |
+          python scripts/validate_skills.py
+          python scripts/validate_skills.py --runtime-smoke
+          python -m unittest discover -s tests -v

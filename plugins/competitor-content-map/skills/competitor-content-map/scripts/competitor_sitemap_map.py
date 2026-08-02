@@ -30,18 +30,23 @@ Usage（獨立 repo 的腳本在根目錄；plugin 版在 scripts/ 底下，路�
 --config 檔：一行一個域名，# 開頭為註解，行尾加 ` you` 標記自己的站。
 
 Exit codes:
-    0 — 至少一個站抓到 URL，地圖已產出
+    0 — 每個目標站都抓到 URL，地圖已產出
     1 — 全部站都抓不到 sitemap（網路 / robots 阻擋 / 域名錯）
     2 — 參數錯誤
+    3 — 抓取不完整，只產出 diagnostic 檔供排錯，不產出策略地圖
 """
 from __future__ import annotations
 
 import argparse
 import gzip
+import http.client
+import io
+import ipaddress
 import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import urllib.error
@@ -70,6 +75,8 @@ USER_AGENT = "Mozilla/5.0 (compatible; competitor-content-map/1.0; +https://gith
 TIMEOUT = 20  # seconds per request
 MAX_SITEMAPS_PER_DOMAIN = 50  # safety cap on sitemap-index fan-out
 MAX_URLS_PER_DOMAIN = 20000  # safety cap on URL collection
+MAX_RESPONSE_BYTES = 10 * 1024 * 1024
+MAX_REDIRECTS = 5
 
 # 兩字母語系前綴（/en/ /zh/ /ja/…）+ 常見地區碼 → 分桶時跳過，取下一段才是真主題。
 LOCALE_SEG = re.compile(r"^([a-z]{2}([-_][a-z]{2,4})?|zh-(hans|hant|tw|cn|hk))$", re.I)
@@ -105,6 +112,7 @@ class SiteData:
     urls: list[tuple[str, str | None]] = field(default_factory=list)  # (loc, lastmod)
     sitemaps_used: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    incomplete: bool = False
 
     @property
     def buckets(self) -> Counter:
@@ -117,20 +125,163 @@ class SiteData:
 # ─────────────────────────────────────────────────────────────
 # Fetch + sitemap discovery
 # ─────────────────────────────────────────────────────────────
-def fetch(url: str) -> bytes | None:
-    """GET url, transparently gunzip .gz / gzip-encoded bodies. None on any failure."""
+def url_origin(url: str) -> tuple[str, str, int]:
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme.lower() != "https" or not parsed.hostname:
+        raise ValueError("只允許有主機名的 HTTPS URL")
+    if parsed.username or parsed.password:
+        raise ValueError("URL 不可包含帳號或密碼")
+    port = parsed.port or 443
+    if port != 443:
+        raise ValueError("只允許 HTTPS 的 443 port")
+    return "https", parsed.hostname.rstrip(".").lower(), port
+
+
+def _validate_public_https_target(
+    url: str,
+    allowed_origin: tuple[str, str, int] | None = None,
+) -> tuple[tuple[str, str, int], tuple[str, ...]]:
+    """Validate the URL and return the public IPs that the transport must pin."""
+    origin = url_origin(url)
+    if allowed_origin is not None and origin != allowed_origin:
+        raise ValueError(f"拒絕跨來源 URL:{url}")
+    _, host, port = origin
+    addresses = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    if not addresses:
+        raise ValueError(f"DNS 無結果:{host}")
+    public_ips: list[str] = []
+    for address in addresses:
+        ip = ipaddress.ip_address(address[4][0].split("%", 1)[0])
+        if not ip.is_global:
+            raise ValueError(f"拒絕非公開位址:{host}")
+        rendered = str(ip)
+        if rendered not in public_ips:
+            public_ips.append(rendered)
+    return origin, tuple(public_ips)
+
+
+def validate_public_https_url(
+    url: str,
+    allowed_origin: tuple[str, str, int] | None = None,
+) -> tuple[str, str, int]:
+    """Reject URLs that could reach credentials, non-public networks or another origin."""
+    origin, _ = _validate_public_https_target(url, allowed_origin)
+    return origin
+
+
+class PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """Connect to prevalidated IPs while keeping the original host for SNI and cert checks."""
+
+    def __init__(
+        self,
+        host: str,
+        *,
+        pinned_ips: tuple[str, ...],
+        expected_hostname: str,
+        **kwargs,
+    ) -> None:
+        self.pinned_ips = pinned_ips
+        self.expected_hostname = expected_hostname
+        super().__init__(host, **kwargs)
+
+    def connect(self) -> None:
+        last_error: OSError | None = None
+        for pinned_ip in self.pinned_ips:
+            sock = None
+            try:
+                sock = self._create_connection(
+                    (pinned_ip, self.port),
+                    self.timeout,
+                    self.source_address,
+                )
+                self.sock = self._context.wrap_socket(
+                    sock,
+                    server_hostname=self.expected_hostname,
+                )
+                return
+            except OSError as exc:
+                last_error = exc
+                if sock is not None:
+                    sock.close()
+        raise OSError("無法連線到已驗證的公開 IP") from last_error
+
+
+class PinnedHTTPSHandler(urllib.request.HTTPSHandler):
+    def __init__(self, pinned_ips: tuple[str, ...], expected_hostname: str) -> None:
+        super().__init__()
+        self.pinned_ips = pinned_ips
+        self.expected_hostname = expected_hostname
+
+    def https_open(self, req):  # noqa: ANN001
+        def connection_factory(host, **kwargs):  # noqa: ANN001
+            return PinnedHTTPSConnection(
+                host,
+                pinned_ips=self.pinned_ips,
+                expected_hostname=self.expected_hostname,
+                **kwargs,
+            )
+
+        return self.do_open(
+            connection_factory,
+            req,
+            context=self._context,
+            check_hostname=self._check_hostname,
+        )
+
+
+class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def __init__(self, allowed_origin: tuple[str, str, int]) -> None:
+        super().__init__()
+        self.allowed_origin = allowed_origin
+        self.redirects = 0
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+        self.redirects += 1
+        if self.redirects > MAX_REDIRECTS:
+            raise urllib.error.HTTPError(newurl, code, "redirect 次數過多", headers, fp)
+        validate_public_https_url(newurl, self.allowed_origin)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def fetch(url: str, allowed_origin: tuple[str, str, int]) -> bytes | None:
+    """GET a bounded same-origin public HTTPS sitemap/robots resource."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-            raw = resp.read()
+        origin, pinned_ips = _validate_public_https_target(url, allowed_origin)
+        opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({}),
+            SafeRedirectHandler(allowed_origin),
+            PinnedHTTPSHandler(pinned_ips, origin[1]),
+        )
+        with opener.open(req, timeout=TIMEOUT) as resp:
+            validate_public_https_url(resp.geturl(), allowed_origin)
+            content_type = resp.headers.get_content_type().lower()
+            if content_type not in {
+                "application/xml", "text/xml", "text/plain", "application/octet-stream",
+                "application/gzip", "application/x-gzip",
+            }:
+                return None
+            raw = resp.read(MAX_RESPONSE_BYTES + 1)
             enc = (resp.headers.get("Content-Encoding") or "").lower()
+        if len(raw) > MAX_RESPONSE_BYTES:
+            return None
         if url.endswith(".gz") or enc == "gzip" or raw[:2] == b"\x1f\x8b":
             try:
-                raw = gzip.decompress(raw)
+                with gzip.GzipFile(fileobj=io.BytesIO(raw)) as archive:
+                    raw = archive.read(MAX_RESPONSE_BYTES + 1)
             except OSError:
-                pass
+                return None
+            if len(raw) > MAX_RESPONSE_BYTES:
+                return None
         return raw
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError):
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        TimeoutError,
+        OSError,
+        ValueError,
+        socket.gaierror,
+    ):
         return None
 
 
@@ -141,47 +292,63 @@ def normalize_domain(d: str) -> str:
     if not re.match(r"^https?://", d):
         d = "https://" + d
     parsed = urllib.parse.urlparse(d)
-    return f"{parsed.scheme}://{parsed.netloc}"
+    if not parsed.hostname:
+        return ""
+    host = parsed.hostname.rstrip(".")
+    return f"https://{host}"
 
 
-def discover_sitemaps(base: str) -> tuple[list[str], list[str]]:
-    """Return (sitemap_urls, notes). Try /sitemap.xml, fall back to robots.txt."""
+def discover_sitemaps(
+    base: str,
+    allowed_origin: tuple[str, str, int],
+) -> tuple[list[str], list[str], bool]:
+    """Return (sitemap_urls, notes, incomplete). Try /sitemap.xml and robots.txt."""
     notes: list[str] = []
+    incomplete = False
     candidate = base + "/sitemap.xml"
-    if fetch(candidate) is not None:
+    if fetch(candidate, allowed_origin) is not None:
         notes.append("/sitemap.xml 直接打得開")
         found = [candidate]
     else:
         found = []
         notes.append("/sitemap.xml 打不開，翻 robots.txt")
 
-    robots = fetch(base + "/robots.txt")
+    robots = fetch(base + "/robots.txt", allowed_origin)
     if robots:
         for line in robots.decode("utf-8", "ignore").splitlines():
             m = re.match(r"\s*sitemap\s*:\s*(\S+)", line, re.I)
             if m:
                 sm = m.group(1).strip()
-                if sm not in found:
+                try:
+                    same_origin = url_origin(sm) == allowed_origin
+                except ValueError:
+                    same_origin = False
+                if same_origin and sm not in found:
                     found.append(sm)
+                elif not same_origin:
+                    notes.append(f"忽略跨來源或不安全 sitemap:{sm}")
+                    incomplete = True
         if any("sitemap:" in line.lower() for line in robots.decode("utf-8", "ignore").splitlines()):
             notes.append("robots.txt 末尾有列 Sitemap")
     elif not found:
         notes.append("robots.txt 也抓不到")
 
-    return found, notes
+    return found, notes, incomplete
 
 
-def parse_sitemap(xml_bytes: bytes) -> tuple[bool, list[tuple[str, str | None]]]:
-    """Return (is_index, entries). entries = [(loc, lastmod)]. Namespace-agnostic."""
+def parse_sitemap(xml_bytes: bytes) -> tuple[bool, list[tuple[str, str | None]], bool]:
+    """Return (is_index, entries, valid_xml). Namespace-agnostic."""
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
-        return False, []
+        return False, [], False
 
     def local(tag: str) -> str:
         return tag.rsplit("}", 1)[-1].lower()
 
     is_index = local(root.tag) == "sitemapindex"
+    if local(root.tag) not in {"sitemapindex", "urlset"}:
+        return False, [], False
     entries: list[tuple[str, str | None]] = []
     for child in root:
         loc = lastmod = None
@@ -193,7 +360,7 @@ def parse_sitemap(xml_bytes: bytes) -> tuple[bool, list[tuple[str, str | None]]]
                 lastmod = sub.text.strip()
         if loc:
             entries.append((loc, lastmod))
-    return is_index, entries
+    return is_index, entries, True
 
 
 def crawl_domain(domain: str, is_you: bool) -> SiteData:
@@ -202,9 +369,15 @@ def crawl_domain(domain: str, is_you: bool) -> SiteData:
     if not base:
         data.errors.append("空域名")
         return data
+    try:
+        allowed_origin = validate_public_https_url(base)
+    except (ValueError, OSError, socket.gaierror) as exc:
+        data.errors.append(f"不安全或無法解析的域名:{exc}")
+        return data
 
-    queue, notes = discover_sitemaps(base)
+    queue, notes, discovery_incomplete = discover_sitemaps(base, allowed_origin)
     data.errors.extend(notes)
+    data.incomplete = discovery_incomplete
     if not queue:
         return data
 
@@ -215,25 +388,50 @@ def crawl_domain(domain: str, is_you: bool) -> SiteData:
         if sm in seen_sitemaps:
             continue
         seen_sitemaps.add(sm)
-        body = fetch(sm)
+        body = fetch(sm, allowed_origin)
         if body is None:
             data.errors.append(f"抓不到 {sm}")
+            data.incomplete = True
             continue
-        is_index, entries = parse_sitemap(body)
+        is_index, entries, valid_xml = parse_sitemap(body)
+        if not valid_xml:
+            data.errors.append(f"無法解析 sitemap XML:{sm}")
+            data.incomplete = True
+            continue
         data.sitemaps_used.append(sm)
         if is_index:
             for loc, _ in entries:
-                if loc not in seen_sitemaps:
+                try:
+                    same_origin = url_origin(loc) == allowed_origin
+                except ValueError:
+                    same_origin = False
+                if same_origin and loc not in seen_sitemaps:
                     queue.append(loc)
+                elif not same_origin:
+                    data.errors.append(f"忽略跨來源或不安全子 sitemap:{loc}")
+                    data.incomplete = True
         else:
             for loc, lastmod in entries:
+                try:
+                    if url_origin(loc) != allowed_origin:
+                        data.errors.append(f"忽略跨來源或不安全 URL:{loc}")
+                        data.incomplete = True
+                        continue
+                except ValueError:
+                    data.errors.append(f"忽略跨來源或不安全 URL:{loc}")
+                    data.incomplete = True
+                    continue
                 if loc in seen_locs:
                     continue
                 seen_locs.add(loc)
                 data.urls.append((loc, lastmod))
                 if len(data.urls) >= MAX_URLS_PER_DOMAIN:
                     data.errors.append(f"URL 超過 {MAX_URLS_PER_DOMAIN} 上限，截斷")
+                    data.incomplete = True
                     return data
+    if queue:
+        data.errors.append(f"sitemap 超過 {MAX_SITEMAPS_PER_DOMAIN} 個上限，截斷")
+        data.incomplete = True
     return data
 
 
@@ -461,6 +659,31 @@ WARN_BLOCK = """\
 >    第 2、3 頁裝死。你扒來的是版圖跟方向，不是內容本身。照抄只能排在它屁股
 >    後面；只有寫得更深、塞滿你的實測數據，才爬得上去。
 """
+
+
+def render_incomplete_markdown(sites: list[SiteData], ts: str) -> str:
+    """Render diagnostics only; incomplete crawls must not produce strategy conclusions."""
+    lines = [
+        "# 對手 Sitemap 抓取診斷",
+        "",
+        f"> 產出時間：{ts}　|　狀態：**資料不完整，不可用於 gap 或主題策略判斷**",
+        "",
+        "修復下列抓取問題後重跑。這份檔案只保留來源診斷，不包含內容版圖、空白候選或 AI 分群 prompt。",
+        "",
+        "| 站台 | 抓到 URL | sitemap | 完整 |",
+        "|------|---------:|---------:|------|",
+    ]
+    for site in sites:
+        complete = "否" if site.incomplete or not site.urls else "是"
+        lines.append(f"| `{site.domain}` | {len(site.urls)} | {len(site.sitemaps_used)} | {complete} |")
+    lines.extend(["", "## 診斷訊息", ""])
+    for site in sites:
+        lines.append(f"### `{site.domain}`")
+        lines.extend(f"- {message}" for message in site.errors)
+        if not site.errors:
+            lines.append("- 無額外訊息")
+        lines.append("")
+    return "\n".join(lines)
 
 
 def render_markdown(sites: list[SiteData], gap: dict, ts: str, profile: dict | None = None) -> str:
@@ -742,8 +965,9 @@ def main() -> int:
     ap.add_argument("--vs", nargs="*", default=[], help="對手域名（空白分隔）")
     ap.add_argument("--you", default=None, help="你自己的站（用來算空白）")
     ap.add_argument("--config", default=None, help="域名清單檔（一行一個，行尾 ` you` 標記自己）")
-    ap.add_argument("--cc", action="store_true", help="用 Claude Code 訂閱（claude -p）做語意分群，免 API key（推薦）")
-    ap.add_argument("--ai", action="store_true", help="改呼叫 Anthropic API 做語意分群（需 ANTHROPIC_API_KEY，另計費）")
+    engine_group = ap.add_mutually_exclusive_group()
+    engine_group.add_argument("--cc", action="store_true", help="用 Claude Code 訂閱（claude -p）做語意分群，免 API key（推薦）")
+    engine_group.add_argument("--ai", action="store_true", help="改呼叫 Anthropic API 做語意分群（需 ANTHROPIC_API_KEY，另計費）")
     ap.add_argument("--out", default=None, help="輸出目錄（預設 outputs/sitemap-maps/）")
     args = ap.parse_args()
 
@@ -763,9 +987,9 @@ def main() -> int:
         rivals.extend(cfg_rivals)
         you = you or cfg_you
 
-    if not rivals and not you:
+    if not rivals:
         ap.print_help()
-        print("\n[錯誤] 至少給一個 --vs 域名或 --config 檔", file=sys.stderr)
+        print("\n[錯誤] 至少要有一個對手：用 --vs，或在 --config 放一行未標記 you 的域名", file=sys.stderr)
         return 2
 
     out_dir = Path(args.out) if args.out else OUT_DIR
@@ -787,6 +1011,44 @@ def main() -> int:
     if not any(s.urls for s in sites):
         print("\n[失敗] 所有站都抓不到 URL。檢查域名 / 網路 / 對方 robots 是否阻擋。", file=sys.stderr)
         return 1
+    incomplete_sites = [s.domain for s in sites if s.incomplete or not s.urls]
+    if incomplete_sites:
+        ts = datetime.now(TW).strftime("%Y-%m-%d %H:%M (UTC+8)")
+        md = render_incomplete_markdown(sites, ts)
+        stamp = datetime.now(TW).strftime("%Y%m%d-%H%M%S-%f")
+        md_path = out_dir / f"diagnostic-{stamp}.md"
+        json_path = out_dir / f"diagnostic-{stamp}.json"
+        md_path.write_text(md, encoding="utf-8")
+        json_path.write_text(
+            json.dumps(
+                {
+                    "generated_at": ts,
+                    "status": "incomplete",
+                    "sites": [
+                        {
+                            "domain": site.domain,
+                            "is_you": site.is_you,
+                            "url_count": len(site.urls),
+                            "sitemaps_used": site.sitemaps_used,
+                            "errors": site.errors,
+                            "incomplete": site.incomplete or not site.urls,
+                        }
+                        for site in sites
+                    ],
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        print("\n抓取診斷產出：")
+        print(f"  Markdown: {md_path}")
+        print(f"  JSON    : {json_path}")
+        print(
+            "\n[資料不完整] 以下目標不可用於策略結論：" + ", ".join(incomplete_sites),
+            file=sys.stderr,
+        )
+        return 3
 
     # 第 0 步：先讀你自己的站（確定性主軸輪廓，空白對齊的基準）
     you_site = next((s for s in sites if s.is_you and s.urls), None)
@@ -811,7 +1073,7 @@ def main() -> int:
         md += "> ⚠ 以下主題清單仍需 Keyword Planner / Ahrefs 驗證搜尋量後才動筆。\n\n"
         md += ai_out + "\n"
 
-    stamp = datetime.now(TW).strftime("%Y%m%d-%H%M%S")  # 到秒,同一分鐘連跑兩次才不會互蓋
+    stamp = datetime.now(TW).strftime("%Y%m%d-%H%M%S-%f")
     md_path = out_dir / f"map-{stamp}.md"
     json_path = out_dir / f"data-{stamp}.json"
     md_path.write_text(md, encoding="utf-8")
@@ -827,6 +1089,7 @@ def main() -> int:
                         "url_count": len(s.urls),
                         "sitemaps_used": s.sitemaps_used,
                         "errors": s.errors,
+                        "incomplete": s.incomplete,
                         "buckets": dict(s.buckets.most_common()),
                         "urls": [{"loc": loc, "lastmod": lm} for loc, lm in s.urls],
                     }

@@ -1,6 +1,6 @@
 {
   "name": "claude-code-checkpoint-system",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Claude Code 跨對話不失憶:斷點系統+hook 自建紀錄",
   "author": {
     "name": "coolkid",
