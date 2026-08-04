@@ -28,6 +28,8 @@ OSS_ROOT = MP_ROOT.parent / "coolkid-oss"
 #   skills = oss repo 與 plugin 同構(skills/ 整棵鏡像)
 #   flat   = 腳本型 repo,對外深連結指著根目錄的 .py,不搬家:
 #            skills/<n>/scripts/* -> 根目錄, examples/ -> examples/, SKILL.md -> SKILL.md
+#   pet    = windows-desktop-pet-builder 沿用它獨立發布時的佈局:
+#            skills/<n>/ -> skill/<n>/(單數), docs/ 與 prompts/ 整棵鏡像
 SYNC_MAP = {
     "article-overlap-checker": "flat",
     "brand-profile-lockdown": "skills",
@@ -38,12 +40,13 @@ SYNC_MAP = {
     "line-bot-builder": "skills",
     "threads-bot-builder": "skills",
     "voice-profile-extraction": "skills",
+    "windows-desktop-pet-builder": "pet",
 }
 
 EXCLUDE_NAMES = {"__pycache__"}
 EXCLUDE_SUFFIXES = {".pyc"}
 # oss 側永不刪除/覆蓋來源以外的這些檔
-OSS_OWNED = {"README.md", ".gitignore"}
+OSS_OWNED = {"README.md", ".gitignore", ".gitattributes"}
 
 # 高信心 secret 樣式:命中就硬擋(exit 2)
 SECRET_PATTERNS = [
@@ -89,6 +92,13 @@ def desired_map(name: str, layout: str) -> dict:
     if layout == "skills":
         for src in rel_files(plug / "skills"):
             out[str(Path("skills") / src.relative_to(plug / "skills"))] = src
+    elif layout == "pet":
+        for src in rel_files(plug / "skills"):
+            out[str(Path("skill") / src.relative_to(plug / "skills"))] = src
+        for extra in ("docs", "prompts"):
+            if (plug / extra).is_dir():
+                for src in rel_files(plug / extra):
+                    out[str(Path(extra) / src.relative_to(plug / extra))] = src
     else:  # flat
         skill_md = inner / "SKILL.md"
         if skill_md.is_file():
@@ -116,6 +126,8 @@ def managed_existing(name: str, layout: str, oss: Path):
     got = []
     if layout == "skills":
         roots = [oss / "skills"]
+    elif layout == "pet":
+        roots = [oss / "skill", oss / "docs", oss / "prompts"]
     else:
         roots = [oss / "examples"]
         got += [p for p in oss.glob("*.py") if p.is_file()]
@@ -226,7 +238,7 @@ def main():
         return 1
 
     if not drift:
-        print(f"✓ 9 組全部與 marketplace {mp_hash} 一致,無事可做")
+        print(f"✓ {len(targets)} 組全部與 marketplace {mp_hash} 一致,無事可做")
         return 0
 
     if args.check:

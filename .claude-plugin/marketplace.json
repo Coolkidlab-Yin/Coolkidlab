@@ -50,6 +50,11 @@
       "name": "claude-code-checkpoint-system",
       "source": "./plugins/claude-code-checkpoint-system",
       "description": "Claude Code 跨對話不失憶:斷點系統+hook 自建紀錄"
+    },
+    {
+      "name": "windows-desktop-pet-builder",
+      "source": "./plugins/windows-desktop-pet-builder",
+      "description": "Windows 桌面寵物建造引導：用自己的照片產一致貼圖，由 Agent 補完 WPF 透明視窗、拖曳與撿球物理，含驗收規格"
     }
   ]
 }
