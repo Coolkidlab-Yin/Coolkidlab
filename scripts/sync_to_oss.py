@@ -38,7 +38,6 @@ SYNC_MAP = {
     "ga4-chatgpt-referral": "skills",
     "ig-bot-builder": "skills",
     "line-bot-builder": "skills",
-    "skill-picker": "skills",
     "threads-bot-builder": "skills",
     "voice-profile-extraction": "skills",
     "windows-desktop-pet-builder": "pet",
