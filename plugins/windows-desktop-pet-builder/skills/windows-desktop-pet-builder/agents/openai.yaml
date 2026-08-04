@@ -1,0 +1,8 @@
+# Codex 的介面顯示設定 —— 只影響這個 Skill 在 Codex 裡的名稱、說明與預設提示詞。
+# 這裡不含任何模型設定,也不含任何金鑰。
+# 這個 Skill 不呼叫 OpenAI API,不需要 API key;生圖是把 prompt 交給使用者
+# 自己去 ChatGPT 網頁版跑(見 references/asset-spec.md)。
+interface:
+  display_name: "Windows 桌面小精靈製作器"
+  short_description: "用寵物照片打造可互動的 Windows 桌面小精靈"
+  default_prompt: "Use $windows-desktop-pet-builder to build a Windows desktop pet from my photo folder."

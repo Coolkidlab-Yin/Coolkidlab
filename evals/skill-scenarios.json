@@ -1,113 +1,165 @@
 {
-  "schema_version": 1,
-  "scenarios": [
-    {
-      "skill_name": "article-overlap-checker",
-      "should_trigger": true,
-      "prompt": "我的 Astro 網站剛 build 完，HTML 在 C:\\site\\dist。請幫我找出可能互搶排名的文章和孤島頁，輸出 report.md；抓取不完整就不要下結論。",
-      "success_criteria": ["使用 plugin 內腳本", "確認納入頁數", "區分相似度與搜尋意圖"]
-    },
-    {
-      "skill_name": "article-overlap-checker",
-      "should_trigger": false,
-      "prompt": "幫我把這兩段產品文案逐字 diff，列出新增和刪除的句子。",
-      "expected_route": "一般文字 diff，不需要全站 TF-IDF 分析"
-    },
-    {
-      "skill_name": "competitor-content-map",
-      "should_trigger": true,
-      "prompt": "先讀 example.com 的 sitemap 找出我的主軸，再比較 rival-a.com 和 rival-b.com 的內容版圖。不要編搜尋量，結果放到 ./maps。",
-      "success_criteria": ["先分析自己的站", "--out 當資料夾", "搜尋量標示不可由 sitemap 推得"]
-    },
-    {
-      "skill_name": "competitor-content-map",
-      "should_trigger": false,
-      "prompt": "我已經有 Ahrefs 匯出的 keywords.csv，請依搜尋量和 KD 排出前 20 名。",
-      "expected_route": "處理既有關鍵字數據，不需要 sitemap 內容地圖"
-    },
-    {
-      "skill_name": "threads-bot-builder",
-      "should_trigger": true,
-      "prompt": "我們博物館的展品資料庫只要標記 ready，就要把資料整理成 Threads 草稿交給策展人確認。這不是既有範例型態，請依目前 repo 補完流程；沒有確認不能發布。",
-      "success_criteria": ["先收斂目標來源觸發去重與 gate", "不強迫套用預設型態或技術棧", "真實發布前 approval gate"]
-    },
-    {
-      "skill_name": "threads-bot-builder",
-      "should_trigger": false,
-      "prompt": "我想把同一批草稿自動發到 Bluesky，包含排程、去重與人工確認。",
-      "expected_route": "需求是其他社群平台的發布系統，不應載入 Threads 平台 Skill"
-    },
-    {
-      "skill_name": "ig-bot-builder",
-      "should_trigger": true,
-      "prompt": "建築工作室的案場照片資料夾會出現 approved 標記，我要自動挑三張組成 IG 輪播預覽，再讓設計總監確認。請讀現有 repo 決定實作，不要硬加 LLM。",
-      "success_criteria": ["由素材與 repo 決定最小 pipeline", "輪播視覺與圖片權利 smoke", "dry-run 與發布核准分離"]
-    },
-    {
-      "skill_name": "ig-bot-builder",
-      "should_trigger": false,
-      "prompt": "幫我把這段訪談剪成 YouTube Shorts，每天自動上傳一支。",
-      "expected_route": "影片剪輯與 YouTube 發布，不應載入 Instagram 圖文發布 Skill"
-    },
-    {
-      "skill_name": "line-bot-builder",
-      "should_trigger": true,
-      "prompt": "美髮店想做 LINE 預約 bot：顧客選時段後要提醒本人和設計師；某一人推播 timeout 只能重試那個人。請依我們現有 Node repo 補完，不要照搬家族行程範例。",
-      "success_criteria": ["只選預約需要的元件", "LINE webhook 簽章", "per-recipient delivery 與安全重試"]
-    },
-    {
-      "skill_name": "line-bot-builder",
-      "should_trigger": false,
-      "prompt": "替美髮店做一個網站預約表單，成功後寄 Email，不使用 LINE。",
-      "expected_route": "一般網站與 Email 預約流程，不應載入 LINE Messaging API Skill"
-    },
-    {
-      "skill_name": "ga4-chatgpt-referral",
-      "should_trigger": true,
-      "prompt": "GA4 昨天出現 3 筆 chatgpt.com referral，我想知道最可能是哪幾頁被引用。請把直接證據、旁證和推測分開，不要假裝能看到使用者 prompt。",
-      "success_criteria": ["GA4 landing page", "OAI-SearchBot 與 UTM 檢查", "不能還原 prompt"]
-    },
-    {
-      "skill_name": "ga4-chatgpt-referral",
-      "should_trigger": false,
-      "prompt": "請幫我在 GA4 建一個電商漏斗，追蹤 add_to_cart 到 purchase 的轉換率。",
-      "expected_route": "一般 GA4 電商分析，不是 ChatGPT referral 歸因"
-    },
-    {
-      "skill_name": "brand-profile-lockdown",
-      "should_trigger": true,
-      "prompt": "我有履歷、20 篇貼文和三次創業失敗筆記，想讓你當品牌顧問訪談我，最後建立 brand-profile.md；每個定位判斷要能指回我的原始事實。",
-      "success_criteria": ["顧問式追問", "evidence table", "brand 與 voice 分離"]
-    },
-    {
-      "skill_name": "brand-profile-lockdown",
-      "should_trigger": false,
-      "prompt": "品牌定位已經定稿，請直接替這份首頁文案改成更有衝擊力的版本。",
-      "expected_route": "依既有定位寫文案，不重做品牌訪談"
-    },
-    {
-      "skill_name": "voice-profile-extraction",
-      "should_trigger": true,
-      "prompt": "Downloads/voice-samples 有 14 篇我自己的繁中貼文。請留 3 篇當 holdout，從其餘樣本萃取 voice-profile.md，規則要跨多篇才成立。",
-      "success_criteria": ["樣本授權與隱私", "跨篇證據門檻", "holdout 驗證"]
-    },
-    {
-      "skill_name": "voice-profile-extraction",
-      "should_trigger": false,
-      "prompt": "請模仿村上春樹的語氣替我寫一篇新小說開頭。",
-      "expected_route": "不從使用者自有樣本萃取 voice profile，且需遵守風格模仿限制"
-    },
-    {
-      "skill_name": "claude-code-checkpoint-system",
-      "should_trigger": true,
-      "prompt": "這個 repo 會跨幾十個 Claude Code session，我不想每次重講進度。請先備份並合併 settings.json，建立 .project 狀態檔和 SessionStart smoke。",
-      "success_criteria": ["不覆寫現有 settings", "狀態檔模板", "新 session 實測載入"]
-    },
-    {
-      "skill_name": "claude-code-checkpoint-system",
-      "should_trigger": false,
-      "prompt": "把這次對話摘要成五個 bullet，讓我貼到 Slack。",
-      "expected_route": "一次性摘要，不建跨 session 基礎設施"
-    }
-  ]
+ "schema_version": 1,
+ "scenarios": [
+  {
+   "skill_name": "article-overlap-checker",
+   "should_trigger": true,
+   "prompt": "我的 Astro 網站剛 build 完，HTML 在 C:\\site\\dist。請幫我找出可能互搶排名的文章和孤島頁，輸出 report.md；抓取不完整就不要下結論。",
+   "success_criteria": [
+    "使用 plugin 內腳本",
+    "確認納入頁數",
+    "區分相似度與搜尋意圖"
+   ]
+  },
+  {
+   "skill_name": "article-overlap-checker",
+   "should_trigger": false,
+   "prompt": "幫我把這兩段產品文案逐字 diff，列出新增和刪除的句子。",
+   "expected_route": "一般文字 diff，不需要全站 TF-IDF 分析"
+  },
+  {
+   "skill_name": "competitor-content-map",
+   "should_trigger": true,
+   "prompt": "先讀 example.com 的 sitemap 找出我的主軸，再比較 rival-a.com 和 rival-b.com 的內容版圖。不要編搜尋量，結果放到 ./maps。",
+   "success_criteria": [
+    "先分析自己的站",
+    "--out 當資料夾",
+    "搜尋量標示不可由 sitemap 推得"
+   ]
+  },
+  {
+   "skill_name": "competitor-content-map",
+   "should_trigger": false,
+   "prompt": "我已經有 Ahrefs 匯出的 keywords.csv，請依搜尋量和 KD 排出前 20 名。",
+   "expected_route": "處理既有關鍵字數據，不需要 sitemap 內容地圖"
+  },
+  {
+   "skill_name": "threads-bot-builder",
+   "should_trigger": true,
+   "prompt": "我們博物館的展品資料庫只要標記 ready，就要把資料整理成 Threads 草稿交給策展人確認。這不是既有範例型態，請依目前 repo 補完流程；沒有確認不能發布。",
+   "success_criteria": [
+    "先收斂目標來源觸發去重與 gate",
+    "不強迫套用預設型態或技術棧",
+    "真實發布前 approval gate"
+   ]
+  },
+  {
+   "skill_name": "threads-bot-builder",
+   "should_trigger": false,
+   "prompt": "我想把同一批草稿自動發到 Bluesky，包含排程、去重與人工確認。",
+   "expected_route": "需求是其他社群平台的發布系統，不應載入 Threads 平台 Skill"
+  },
+  {
+   "skill_name": "ig-bot-builder",
+   "should_trigger": true,
+   "prompt": "建築工作室的案場照片資料夾會出現 approved 標記，我要自動挑三張組成 IG 輪播預覽，再讓設計總監確認。請讀現有 repo 決定實作，不要硬加 LLM。",
+   "success_criteria": [
+    "由素材與 repo 決定最小 pipeline",
+    "輪播視覺與圖片權利 smoke",
+    "dry-run 與發布核准分離"
+   ]
+  },
+  {
+   "skill_name": "ig-bot-builder",
+   "should_trigger": false,
+   "prompt": "幫我把這段訪談剪成 YouTube Shorts，每天自動上傳一支。",
+   "expected_route": "影片剪輯與 YouTube 發布，不應載入 Instagram 圖文發布 Skill"
+  },
+  {
+   "skill_name": "line-bot-builder",
+   "should_trigger": true,
+   "prompt": "美髮店想做 LINE 預約 bot：顧客選時段後要提醒本人和設計師；某一人推播 timeout 只能重試那個人。請依我們現有 Node repo 補完，不要照搬家族行程範例。",
+   "success_criteria": [
+    "只選預約需要的元件",
+    "LINE webhook 簽章",
+    "per-recipient delivery 與安全重試"
+   ]
+  },
+  {
+   "skill_name": "line-bot-builder",
+   "should_trigger": false,
+   "prompt": "替美髮店做一個網站預約表單，成功後寄 Email，不使用 LINE。",
+   "expected_route": "一般網站與 Email 預約流程，不應載入 LINE Messaging API Skill"
+  },
+  {
+   "skill_name": "ga4-chatgpt-referral",
+   "should_trigger": true,
+   "prompt": "GA4 昨天出現 3 筆 chatgpt.com referral，我想知道最可能是哪幾頁被引用。請把直接證據、旁證和推測分開，不要假裝能看到使用者 prompt。",
+   "success_criteria": [
+    "GA4 landing page",
+    "OAI-SearchBot 與 UTM 檢查",
+    "不能還原 prompt"
+   ]
+  },
+  {
+   "skill_name": "ga4-chatgpt-referral",
+   "should_trigger": false,
+   "prompt": "請幫我在 GA4 建一個電商漏斗，追蹤 add_to_cart 到 purchase 的轉換率。",
+   "expected_route": "一般 GA4 電商分析，不是 ChatGPT referral 歸因"
+  },
+  {
+   "skill_name": "brand-profile-lockdown",
+   "should_trigger": true,
+   "prompt": "我有履歷、20 篇貼文和三次創業失敗筆記，想讓你當品牌顧問訪談我，最後建立 brand-profile.md；每個定位判斷要能指回我的原始事實。",
+   "success_criteria": [
+    "顧問式追問",
+    "evidence table",
+    "brand 與 voice 分離"
+   ]
+  },
+  {
+   "skill_name": "brand-profile-lockdown",
+   "should_trigger": false,
+   "prompt": "品牌定位已經定稿，請直接替這份首頁文案改成更有衝擊力的版本。",
+   "expected_route": "依既有定位寫文案，不重做品牌訪談"
+  },
+  {
+   "skill_name": "voice-profile-extraction",
+   "should_trigger": true,
+   "prompt": "Downloads/voice-samples 有 14 篇我自己的繁中貼文。請留 3 篇當 holdout，從其餘樣本萃取 voice-profile.md，規則要跨多篇才成立。",
+   "success_criteria": [
+    "樣本授權與隱私",
+    "跨篇證據門檻",
+    "holdout 驗證"
+   ]
+  },
+  {
+   "skill_name": "voice-profile-extraction",
+   "should_trigger": false,
+   "prompt": "請模仿村上春樹的語氣替我寫一篇新小說開頭。",
+   "expected_route": "不從使用者自有樣本萃取 voice profile，且需遵守風格模仿限制"
+  },
+  {
+   "skill_name": "claude-code-checkpoint-system",
+   "should_trigger": true,
+   "prompt": "這個 repo 會跨幾十個 Claude Code session，我不想每次重講進度。請先備份並合併 settings.json，建立 .project 狀態檔和 SessionStart smoke。",
+   "success_criteria": [
+    "不覆寫現有 settings",
+    "狀態檔模板",
+    "新 session 實測載入"
+   ]
+  },
+  {
+   "skill_name": "claude-code-checkpoint-system",
+   "should_trigger": false,
+   "prompt": "把這次對話摘要成五個 bullet，讓我貼到 Slack。",
+   "expected_route": "一次性摘要，不建跨 session 基礎設施"
+  },
+  {
+   "skill_name": "windows-desktop-pet-builder",
+   "should_trigger": true,
+   "prompt": "我有一個資料夾放我家柴犬的照片 C:\\pets\\shiba，想做一隻會待在桌面右下角、可以拖著走、眼睛會跟著滑鼠、丟球會去撿的 Windows 桌寵。請從貼圖到打包一路做完，不要只給 mockup。",
+   "success_criteria": [
+    "先確認必要輸入(角色名/照片資料夾)",
+    "產一致姿勢貼圖並驗證透明度",
+    "實作與驗收依 references 規格,不停在示意"
+   ]
+  },
+  {
+   "skill_name": "windows-desktop-pet-builder",
+   "should_trigger": false,
+   "prompt": "幫我寫一個 Windows 系統匣常駐小工具，監控 CPU 溫度並在過熱時跳通知。",
+   "expected_route": "一般 Windows 常駐程式開發，與照片貼圖桌寵無關"
+  }
+ ]
 }

@@ -1,0 +1,19 @@
+{
+  "name": "windows-desktop-pet-builder",
+  "version": "1.0.0",
+  "description": "Windows 桌面寵物建造引導：用自己的照片產一致貼圖，由 Agent 補完 C#/WPF 透明視窗、拖曳、看滑鼠與撿球物理，含驗收規格",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/windows-desktop-pet-builder",
+  "license": "MIT",
+  "keywords": [
+    "windows",
+    "desktop-pet",
+    "wpf",
+    "sprite",
+    "agent-guided",
+    "zh-tw"
+  ]
+}
