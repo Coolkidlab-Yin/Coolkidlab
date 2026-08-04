@@ -1,0 +1,19 @@
+{
+  "name": "skill-picker",
+  "version": "0.1.0",
+  "description": "Skill 選擇器:/pick 開選單挑這輪要用的 skill、AI 依任務推薦;支援 skills-library 封存區按需載入,砍掉未用 skill 的每請求 token 稅(零依賴)",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/Coolkidlab",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "skills",
+    "context",
+    "token",
+    "picker",
+    "zh-tw"
+  ]
+}

@@ -53,6 +53,7 @@ Coolkid AI Lab 的繁中 Claude Code plugin 工具庫。內容來自
 | Workflow | **brand-profile-lockdown** | 經歷、作品、失敗與在意的事 | 有原始事實支撐的 brand-profile.md |
 | Workflow | **voice-profile-extraction** | 自有寫作樣本與 holdout | 可驗證、可版本化的 voice-profile.md |
 | Workflow | **claude-code-checkpoint-system** | 長期專案與 hooks 環境 | 狀態檔、載入 hook 與跨 session smoke |
+| 工具 | **skill-picker** | 已裝的 skills；可選 skills-library 封存資料夾 | /pick 選單與 AI 推薦、封存 skill 按需載入、砍未用 skill 的 token 稅 |
 
 ### 怎麼選
 
