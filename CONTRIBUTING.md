@@ -71,3 +71,25 @@ smoke case。涉及平台 API
 這個 marketplace 的 `plugin.json` 有明確版本，因此任何會改變已安裝 Skill 行為的
 發布都要更新版本：相容的教學補強升 minor，純錯字或不改行為的修正升 patch，破壞性
 改動才升 major。只推 commit、不改版本，已安裝的使用者可能拿不到更新。
+
+## 單一事實來源與 oss 鏡像同步(2026-08-04 裁定)
+
+本 repo 是 9 個工具的**唯一事實來源**。`coolkid-oss/` 底下的 9 個獨立公開 repo
+是鏡像,由 `scripts/sync_to_oss.py` 單向同步過去,**不要直接改鏡像的內容**
+(各鏡像的 `README.md` 與 `.gitignore` 除外,那兩個由鏡像 repo 自管;哪天想把
+README 也收進來,放到 `plugins/<name>/README.md` 腳本就會自動接手)。
+
+```bash
+python scripts/sync_to_oss.py          # dry-run 看漂移
+python scripts/sync_to_oss.py --push   # 同步+逐 repo commit+push
+```
+
+紀律由 versioned pre-push hook 強制:有漂移或鏡像未推,推送本 repo 會被擋。
+新 clone 啟用一次:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+兩邊都是公開 repo:同步腳本寫出前會掃 secrets,命中即中止;新增高風險樣式
+請補進 `SECRET_PATTERNS`。

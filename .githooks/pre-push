@@ -1,0 +1,10 @@
+#!/bin/sh
+# 單一事實來源紀律:推 marketplace 前,確認 coolkid-oss 9 個鏡像已同步。
+# 啟用(每個 clone 一次):git config core.hooksPath .githooks
+python "$(git rev-parse --show-toplevel)/scripts/sync_to_oss.py" --check
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "推送已擋下。先跑: python scripts/sync_to_oss.py --push"
+    echo "(確定要跳過檢查: git push --no-verify)"
+    exit 1
+fi
