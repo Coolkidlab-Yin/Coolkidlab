@@ -55,11 +55,6 @@
       "name": "windows-desktop-pet-builder",
       "source": "./plugins/windows-desktop-pet-builder",
       "description": "Windows 桌面寵物建造引導：用自己的照片產一致貼圖，由 Agent 補完 WPF 透明視窗、拖曳與撿球物理，含驗收規格"
-    },
-    {
-      "name": "skill-picker",
-      "source": "./plugins/skill-picker",
-      "description": "Skill 選擇器:選單挑選/AI 推薦/封存庫按需載入,砍掉未用 skill 的每請求 token 稅(零依賴)"
     }
   ]
 }
