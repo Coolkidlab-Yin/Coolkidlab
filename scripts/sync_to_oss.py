@@ -218,9 +218,10 @@ def main():
         if missing:
             failures.append(f"{name}: 本機找不到 {OSS_ROOT / name}(先 clone)")
             continue
-        # --check 同時把「同步了但沒 commit/沒 push」視為未完成
+        # --check/--push 同時把「同步了但沒 commit/沒 push」視為未完成
+        # (例如前一輪寫入成功但 commit 失敗;--push 會接手把它收尾)
         pending = ""
-        if args.check and not changed and not deleted:
+        if (args.check or args.push) and not changed and not deleted:
             oss = OSS_ROOT / name
             if git(oss, "status", "--porcelain").stdout.strip():
                 pending = "工作樹有未 commit 變更"
