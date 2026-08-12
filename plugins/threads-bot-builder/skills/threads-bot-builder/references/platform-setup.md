@@ -5,12 +5,16 @@
 
 ## 憑證陪走
 
-1. 先確認 Agent 是否有可用瀏覽器能力；沒有就採逐步口述，不要求安裝某個
-   特定 Agent 的擴充功能。
-2. 帳號、密碼、驗證碼由使用者輸入；建立 App、同意條款、產生或重發 secret
-   等有外部副作用的按鈕由使用者確認。
-3. token/secret 直接存入環境變數或 secret store，不貼進對話、不截完整後台。
-4. 同一步找不到三次就停，改讀當下官方文件與畫面文字，不憑記憶猜。
+先完整讀 [browser-setup.md](browser-setup.md)，選定現有瀏覽器、官方安裝分流或
+逐步口述 fallback。瀏覽器連線 smoke 通過後，再陪使用者進入 Meta App 與
+Threads 帳號後台。
+
+這一關只確認：Threads 帳號與 Meta App 是否準備、必要權限是否依當下官方文件
+採最小集合、token 是否走 server-side 流程，以及 THREADS_USER_ID 是否已和
+實際帳號回讀一致。帳密與驗證碼由使用者輸入；建立 App、同意條款、變更權限、
+產生或重發 secret 都要在點擊前取得當次批准。每取得一項 credential，只做
+遮罩後 read-back 並直接存入環境變數或 secret store。同一步失敗三次就停止猜測，
+改查當下官方文件與實際畫面。
 
 要達成的狀態：
 

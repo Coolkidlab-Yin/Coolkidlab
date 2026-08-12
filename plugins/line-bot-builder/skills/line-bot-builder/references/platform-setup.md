@@ -4,11 +4,18 @@
 
 ## 憑證陪走
 
-- 先使用現有瀏覽器能力；沒有就逐步口述，不要求特定 Agent 擴充功能。
-- 帳密與驗證碼由使用者輸入；建立 Provider/channel、同意條款、發行或重發
-  token/secret 由使用者確認。
-- secret/token 不貼對話、不截完整後台，直接進環境變數或 secret store。
-- 關閉會遮蓋 bot 回覆的預設自動回覆，只在實際需要時修改。
+先完整讀 [browser-setup.md](browser-setup.md)，選定現有瀏覽器、官方安裝分流或
+逐步口述 fallback。瀏覽器連線 smoke 通過後，再陪使用者進入 LINE Developers
+Console。
+
+這一關先判斷是否真的需要 inbound webhook。純推播只建立必要的 channel 與
+access token；要收訊息才設定公開 HTTPS webhook、Use webhook 與 channel
+secret。帳密與驗證碼由使用者輸入；建立 Provider／channel、接受條款、發行或
+重發 token／secret、開啟 webhook 及修改預設自動回覆，都要在點擊前取得當次
+批准。每取得一項 credential，只做遮罩後 read-back 並直接存入環境變數或
+secret store。同一步失敗三次就停止猜測，改查當下官方文件與實際畫面。
+
+關閉會遮蓋 bot 回覆的預設自動回覆，只在實際需要時修改。
 
 純推播只需要可發訊息的 channel access token 與合法 recipient；不需要 webhook。
 要收訊息時才設定公開 HTTPS webhook、啟用 Use webhook、取得 channel secret，

@@ -5,10 +5,15 @@
 
 ## 憑證陪走
 
-- 先使用現有瀏覽器能力；沒有就逐步口述，不要求特定 Agent 擴充功能。
-- 帳密、驗證碼由使用者輸入；建立 App、同意條款、產生 key/secret 由使用者確認。
-- token/secret 不貼對話、不截完整後台，直接存環境變數或 secret store。
-- 每取得一項就做遮罩後 read-back；同一步卡三次就查官方文件，不再猜。
+先完整讀 [browser-setup.md](browser-setup.md)，選定現有瀏覽器、官方安裝分流或
+逐步口述 fallback。瀏覽器連線 smoke 通過後，再陪使用者進入 Meta App 與
+Instagram 專業帳號後台。
+
+這一關只確認：帳號是否符合當下官方發文資格、選用哪一條官方登入路線、權限是否
+採最小集合、IG user id 與 username 映射是否已回讀。帳密與驗證碼由使用者輸入；
+建立 App、同意條款、變更權限、產生或重發 key／secret 都要在點擊前取得當次
+批准。每取得一項 credential，只做遮罩後 read-back 並直接存入環境變數或
+secret store。同一步失敗三次就停止猜測，改查當下官方文件與實際畫面。
 
 先選官方支援的登入路線。Instagram Login 與 Facebook Login 的帳號連結、
 權限、API host 可能不同；依使用者帳號型態與當下文件選一條，不混用 scope。
