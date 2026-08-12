@@ -1,14 +1,22 @@
-# Instagram 後台瀏覽器陪走
+# Instagram 後台瀏覽器 MCP 陪走
 
-建立平台憑證通常需要登入後台。優先使用可互動的瀏覽器能力，讓 Agent 一次帶
-一個畫面；這份 Skill 的工程契約不依賴任何單一 Agent，沒有瀏覽器能力時仍可
-安全改用逐步口述。
+## 先講為什麼要接
+
+建 Meta 開發者後台 的每一步都在要登入的網頁後台裡：建立 App、勾權限、按發行 token、
+開 webhook。接上瀏覽器 MCP（或同等的瀏覽器能力）之後，Agent 和你看的是同一個畫面，
+可以直接說「左邊選單第三項」並確認你點對了。
+
+沒接也做得完，只是每個畫面都要你自己描述或截圖回報，來回次數多很多，也更容易在
+「我以為你點的是那個」上卡住。
+
+**所以預設要主動幫使用者接起來，不是等他卡住才提。** 這份 Skill 不綁定任何單一
+Agent；接不接、用哪一種，最後由使用者決定。
 
 ## 四層判斷（照順序，不要跳）
 
-### 第一層：先看你自己有沒有瀏覽器工具
+### 第一層：先看你自己有沒有瀏覽器能力
 
-**這一層由 Agent 自己判斷，不要問使用者，也不要叫他安裝任何東西。**
+**這一層由 Agent 自己判斷，不要問使用者，也不要先叫他安裝任何東西。**
 
 檢查你目前可用的工具清單裡，有沒有名稱含下列關鍵字的工具：
 
@@ -16,26 +24,32 @@
 browser / chrome / playwright / puppeteer / webdriver / computer
 ~~~
 
-有 → 直接用現成能力，跳到「連線 smoke」。少數 Agent 的工具要先載入才會出現
-完整定義；若你的環境有工具搜尋機制，先查一次再判定沒有。
+工具要先載入才看得到完整定義的環境（例如有工具搜尋機制的 Agent），先查一次再判定沒有。
 
-沒有 → 進第二層。
+- **有** → 跳到「連線 smoke」。但要**講出來**你打算用哪一個，例如
+  「我這邊有 Chrome 瀏覽器工具，等一下我用它陪你開 Meta 開發者後台」。
+  不要默默使用，使用者有權知道 Agent 會看到他的瀏覽器畫面。
+- **有但受限**（例如只能讀不能點、不能跨分頁、被沙箱擋住）→ 說明限制，
+  再依第二層提供可補足的 MCP 選項，讓使用者決定要不要加裝。
+- **沒有** → 進第二層。
 
-### 第二層：你知道自己是哪個 Agent，就給對應路徑
+### 第二層：沒有就主動帶他接（給指令，不是只丟連結）
 
 你在自己的系統設定裡就知道自己是誰，不需要偵測使用者的環境變數或資料夾。
-照下表選一條，把安裝連結給使用者，並說明裝完要重新載入才會出現工具。
+照下表選一條，把指令與連結一起給，並說明**裝完要重新啟動 Agent 才會出現工具**。
 
-| 你是 | 給使用者的官方路徑 |
+| 你是 | 帶使用者做什麼 |
 |---|---|
-| Claude Code、Claude 桌面版或其他 Claude 產品 | [Claude Chrome 擴充](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn)；安裝與授權步驟見 [Anthropic 官方說明](https://support.claude.com/en/articles/12012173-getting-started-with-claude-for-chrome) |
-| 其他支援 MCP 的 Agent（Codex、Cursor、Cline 等） | [Microsoft Playwright MCP](https://github.com/microsoft/playwright-mcp)，依該 repository 當下的 client 設定方式安裝 |
+| Claude Code | 二選一。要沿用他已經登入的 Chrome → 裝 [Claude 瀏覽器擴充](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn)（步驟見 [官方說明](https://support.claude.com/en/articles/12012173-getting-started-with-claude-for-chrome)）。要獨立、不動到他原本的瀏覽器 → 接 Playwright MCP：`claude mcp add playwright npx @playwright/mcp@latest` |
+| Codex CLI | 接 Playwright MCP：`codex mcp add playwright -- npx @playwright/mcp@latest` |
+| 其他支援 MCP 的 Agent（Cursor、Cline、VS Code 外掛等） | 依該 Agent 的 MCP 設定檔加入 [Playwright MCP](https://github.com/microsoft/playwright-mcp)，標準寫法是 `{"mcpServers": {"playwright": {"command": "npx", "args": ["@playwright/mcp@latest"]}}}` |
 
-不要從本檔複製固定的安裝命令或設定格式；官方 repository 的設定方式會改，
-請使用者以連結內當下的說明為準。
+上面兩條 CLI 指令與 JSON 寫法都取自官方文件；若執行後報錯或選項不同，**以
+[Playwright MCP 官方 repository](https://github.com/microsoft/playwright-mcp) 當下的
+說明為準**，不要自己改參數硬試。
 
 Claude 瀏覽器擴充在官方說明頁列為付費方案功能；條件以該頁當下內容為準。
-使用者不符合條件時不要卡住，直接改走第三層或第四層。
+使用者不符合條件時不要卡住，直接改用 Playwright MCP 或走第四層。
 
 ### 第三層：認不出自己是哪個 Agent，或使用者想自己選 → 全給
 
@@ -43,8 +57,8 @@ Claude 瀏覽器擴充在官方說明頁列為付費方案功能；條件以該�
 
 | 想要的效果 | 官方來源 | 適合誰 |
 |---|---|---|
-| 用你已經登入的 Chrome，直接接手後台分頁 | [Claude Chrome 擴充](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn) ＋ [官方說明](https://support.claude.com/en/articles/12012173-getting-started-with-claude-for-chrome) | 用 Claude 產品，且希望沿用現有登入狀態 |
-| 跨 Agent 通用的瀏覽器自動化 | [Microsoft Playwright MCP](https://github.com/microsoft/playwright-mcp) | 用任何支援 MCP 的 Agent |
+| 用他已經登入的 Chrome，直接接手後台分頁 | [Claude 瀏覽器擴充](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn) ＋ [官方說明](https://support.claude.com/en/articles/12012173-getting-started-with-claude-for-chrome) | 用 Claude 產品，且希望沿用現有登入狀態 |
+| 跨 Agent 通用的瀏覽器自動化，開獨立瀏覽器不動原本的 | [Microsoft Playwright MCP](https://github.com/microsoft/playwright-mcp) | 任何支援 MCP 的 Agent |
 | 另外要看 console 訊息或網路請求 | [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) | 需要排查前端錯誤或抓 API 回應時的補充選項 |
 
 只給這三個網址。不要補上未經查證的擴充、映像站、第三方套件或安裝命令。
@@ -53,6 +67,7 @@ Claude 瀏覽器擴充在官方說明頁列為付費方案功能；條件以該�
 
 使用者拒絕安裝、公司環境禁止、或目前 Agent 不支援時，**不要卡住也不要重複勸說**，
 直接改走本檔最後一節的逐步口述流程。這條路一樣能完成所有憑證關卡，只是慢一些。
+之後也不要每個畫面都再問一次要不要裝。
 
 ## 連線 smoke
 
@@ -61,7 +76,7 @@ Claude 瀏覽器擴充在官方說明頁列為付費方案功能；條件以該�
 1. 開啟一個公開頁面（例如平台的官方文件頁），讀回頁面標題。
 2. 向使用者確認：這個瀏覽器環境只開放這次任務需要的分頁。
 
-讀不回標題就當作沒有瀏覽器能力，回到第四層。
+讀不回標題就當作沒有瀏覽器能力，回到第四層，不要反覆重試。
 
 安裝瀏覽器能力本身不是建立 App、channel 或憑證的批准。完成連線 smoke 後，
 仍要在每個外部副作用前重新取得批准。
@@ -80,7 +95,8 @@ Claude 瀏覽器擴充在官方說明頁列為付費方案功能；條件以該�
 
 瀏覽器擴充或瀏覽器 MCP 可能看見同一個瀏覽器環境中其他已登入分頁。開始前，
 先關閉或移出所有與本次任務無關的分頁；最好使用專用瀏覽器設定檔或獨立視窗，
-只開這次需要的 Meta App 與 Instagram 專業帳號後台。
+只開這次需要的 Meta App 與 Instagram 專業帳號後台。用 Playwright MCP 這類會另開瀏覽器的方案時，
+預設就是乾淨環境，這一條的風險較低，但仍要向使用者說明 Agent 看得到什麼。
 
 Agent 只可操作使用者明確指定的後台分頁，不得打開或瀏覽信箱、密碼管理器、
 金流、私人社群、雲端硬碟或其他帳號頁面。帳號、密碼、驗證碼與恢復碼一律由

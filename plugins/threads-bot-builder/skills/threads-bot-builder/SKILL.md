@@ -48,6 +48,24 @@ description: >
   憑證關卡前讀 [browser-setup.md](references/browser-setup.md) 與
   [platform-setup.md](references/platform-setup.md)。
 
+## 瀏覽器 MCP：進後台之前先接好
+
+建立 Threads 憑證要在登入後的網頁後台一步步點。有瀏覽器能力時你和使用者看同一個
+畫面，可以直接帶他點對位置；沒有就得靠他一句一句描述，來回次數多很多。
+所以進入憑證關卡前**主動處理這件事，不要等使用者卡住才提**：
+
+1. 先查自己的工具清單有沒有瀏覽器工具（`browser`／`chrome`／`playwright`／
+   `puppeteer`／`computer` 等字樣）。有就講出來你要用哪一個，然後直接用。
+2. 沒有 → 依你是哪個 Agent 主動給安裝方式。Claude Code：裝 Claude 瀏覽器擴充，
+   或 `claude mcp add playwright npx @playwright/mcp@latest`；Codex：
+   `codex mcp add playwright -- npx @playwright/mcp@latest`；其他 Agent：
+   依其 MCP 設定檔加入 Playwright MCP。裝完要重啟才會出現工具。
+3. 認不出自己是誰，或使用者想自己選 → 三條官方路徑全給他挑。
+4. 不想裝或環境不支援 → 直接走逐步口述，不要重複勸說。
+
+官方網址、完整分流表、連線 smoke 與後台操作紅線（含「擴充看得到其他已登入分頁」）
+→ [browser-setup.md](references/browser-setup.md)
+
 ## 先選工作模式
 
 - **教學規劃**：產出決策、架構、風險、分階段驗收；不聲稱已改 repo。
