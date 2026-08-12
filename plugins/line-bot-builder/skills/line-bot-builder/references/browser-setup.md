@@ -111,8 +111,10 @@ Claude 瀏覽器擴充在官方說明頁列為付費方案功能；條件以該�
 
 瀏覽器擴充或瀏覽器 MCP 可能看見同一個瀏覽器環境中其他已登入分頁。開始前，
 先關閉或移出所有與本次任務無關的分頁；最好使用專用瀏覽器設定檔或獨立視窗，
-只開這次需要的 LINE Developers Console 的 Provider、channel 與 webhook 後台。用 Playwright MCP 這類會另開瀏覽器的方案時，
-預設就是乾淨環境，這一條的風險較低，但仍要向使用者說明 Agent 看得到什麼。
+只開這次需要的 LINE Developers Console 的 Provider、channel 與 webhook 後台。
+
+用 Playwright MCP 這類會另開瀏覽器的方案時，預設就是乾淨環境，這一條的風險較低，
+但仍要向使用者說明 Agent 看得到什麼。
 
 Agent 只可操作使用者明確指定的後台分頁，不得打開或瀏覽信箱、密碼管理器、
 金流、私人社群、雲端硬碟或其他帳號頁面。帳號、密碼、驗證碼與恢復碼一律由
