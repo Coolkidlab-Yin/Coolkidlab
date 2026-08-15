@@ -1,0 +1,37 @@
+{
+  "_comment": "選填。填了才會在清單裡出現推薦連結，並自動附上揭露聲明。留空就完全不出現導購。",
+  "_main": "主要是 flights（機票）和 hotels（住宿）這兩類——那是使用者本來就一定會訂的東西。其餘五類沒有就留空，不要為了填滿而去申請一堆聯盟計畫，那只會讓清單看起來像廣告。",
+  "_note": "聯盟連結本來就設計成公開分享，不是密碼。但填進去之後如果推上公開 repo，那組編號就是公開的。",
+  "_placeholders": {
+    "說明": "網址裡可以放佔位符，腳本會換成這趟行程的實際值。不放也可以，那就是固定連結。",
+    "{dest}": "目的地，使用者講的那個詞（韓國／釜山／東京）",
+    "{depart}": "出發日 2026-10-13",
+    "{back}": "回程日 2026-10-18",
+    "{days}": "總天數 6。保險按「天」投保，用這個",
+    "{nights}": "住幾晚 5。訂房用這個",
+    "{people}": "幾個人",
+    "填不出來會怎樣": "那個查詢參數整個不送，其餘照常",
+    "範例": "https://tw.trip.com/hotels/list?city={dest}&checkin={depart}&checkout={back}&Allianceid=你的&SID=你的"
+  },
+  "_ethics": "掛連結的項目，回答時一定要同時講替代方案；不要為了有連結就多推一項使用者不需要的東西。細節見 references/00-boundaries.md",
+  "disclosure": "上面這條是推廣連結，透過它完成訂購，本站可能獲得分潤，不影響你支付的價格。",
+  "_verified": {
+    "when": "2026-08-15",
+    "how": "用真的瀏覽器打開，確認頁面內容正確，並確認 Allianceid / SID / trip_sub3 三個參數在載入後都還在。",
+    "hotels": "頁面顯示釜山、10/13–10/18、房客數正確，飯店列表是真的釜山飯店。city 吃中文城市名，腳本會自動編碼。",
+    "flights": "落地在機票搜尋頁，搜尋框可用，三個聯盟參數都在。",
+    "為什麼機票不帶航線": "Trip.com 的機票網址要 IATA 代碼（dcitycode=tpe&acitycode=pus），而這個 skill 收的是「韓國」這種自由文字，套不進去。而且這個 skill 本來就不做比價——使用者要比哪天飛便宜，用 Google Flights 的日期網格。所以機票這條的任務只是「要訂的時候從這裡進去」。",
+    "注意": "curl 打機票那條會被機器人驗證擋下（住宿不會）。那是正常的，真人瀏覽器不會被擋。要重驗請用瀏覽器，不要只看 HTTP 狀態碼。",
+    "歸屬證據": "Trip.com 不動網址列。歸屬寫進 Union cookie：AllianceID=10050615&SID=328478116&OUID=...，Expires − createtime = 2,592,000 秒 = 30 天歸屬視窗。transactionId 在 _combined cookie，不在網址上——重驗的人不要去網址列找它，找不到不代表壞了。",
+    "未確認": "trip_sub3 沒有出現在 Union cookie 裡（只有 AllianceID/SID/OUID）。它有送達 Trip.com，但有沒有進報表只能在聯盟後台看，不要用瀏覽器端結果下結論。"
+  },
+  "links": {
+    "flights": "https://tw.trip.com/flights/?Allianceid=10050615&SID=328478116&trip_sub3=D19231886",
+    "hotels": "https://tw.trip.com/hotels/list?city={dest}&checkin={depart}&checkout={back}&adult={people}&Allianceid=10050615&SID=328478116&trip_sub3=D19231886",
+    "esim": "",
+    "insurance": "",
+    "tickets": "",
+    "transport": "",
+    "carrental": ""
+  }
+}

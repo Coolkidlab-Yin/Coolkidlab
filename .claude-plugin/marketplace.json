@@ -55,6 +55,11 @@
       "name": "windows-desktop-pet-builder",
       "source": "./plugins/windows-desktop-pet-builder",
       "description": "Windows 桌面寵物建造引導：用自己的照片產一致貼圖，由 Agent 補完 WPF 透明視窗、拖曳與撿球物理，含驗收規格"
+    },
+    {
+      "name": "trip-guide",
+      "source": "./plugins/trip-guide",
+      "description": "出國行前教練:帶不知道該訂什麼的人把一趟旅遊規劃完。五個時間層 17 個模組,用出發日算出每項的實際截止日,標連假。不比價、不代訂(腳本零依賴)"
     }
   ]
 }
