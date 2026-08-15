@@ -1,0 +1,18 @@
+{
+  "name": "trip-guide",
+  "version": "0.1.0",
+  "description": "出國行前教練:帶不知道「該訂什麼、什麼時候訂」的人把一趟旅遊規劃完。五個時間層 17 個模組,用你的出發日算出每一項的實際截止日,標出撞不撞連假。不比價、不代訂,簽證規則一律導向官方(腳本零依賴)",
+  "author": {
+    "name": "coolkid",
+    "url": "https://www.coolkidlab.com"
+  },
+  "homepage": "https://github.com/Coolkidlab-Yin/Coolkidlab",
+  "license": "MIT",
+  "keywords": [
+    "travel",
+    "trip-planning",
+    "checklist",
+    "coaching",
+    "zh-tw"
+  ]
+}
