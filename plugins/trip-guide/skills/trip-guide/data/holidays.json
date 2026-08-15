@@ -1,0 +1,72 @@
+{
+  "_about": "連假日期。掃描結果會標上這些期間，用來回答「連假出發貴多少」。",
+  "_verified_on": "2026-08-14",
+  "_expires_after": "2027-12-31",
+  "_maintenance": [
+    "這份檔案會過期，每年要重新查一次。過了 _expires_after 之後 trip_checklist.py 會停止標連假並印警告，",
+    "不要忽略——標錯連假比不標連假糟糕，使用者會照著錯的日期改行程。",
+    "台灣：行政院人事行政總處『政府行政機關辦公日曆表』每年 6 月前後公布次年版。",
+    "日本：內閣府『国民の祝日について』。お盆與年末年始不是法定假日但是實際的移動高峰，",
+    "所以放在這裡並標 kind=custom。"
+  ],
+  "_sources": {
+    "tw_2026": "人事行政總處 115 年辦公日曆表（2026-08-14 由兩個獨立來源比對，日期一致）",
+    "tw_2027": "116 年行事曆媒體整理（2026-08-14 單一來源，尚未與官方版比對過）",
+    "jp_2026": "nippon.com 官方祝日列表（2026-08-14）"
+  },
+
+  "regions": {
+    "tw": {
+      "label": "台灣",
+      "confidence": {"2026": "verified", "2027": "single-source"},
+      "periods": [
+        {"name": "元旦", "start": "2026-01-01", "end": "2026-01-01", "kind": "national"},
+        {"name": "農曆春節", "start": "2026-02-14", "end": "2026-02-22", "kind": "national"},
+        {"name": "228 和平紀念日", "start": "2026-02-27", "end": "2026-03-01", "kind": "national"},
+        {"name": "兒童節、民族掃墓節", "start": "2026-04-03", "end": "2026-04-06", "kind": "national"},
+        {"name": "勞動節", "start": "2026-05-01", "end": "2026-05-03", "kind": "national"},
+        {"name": "端午節", "start": "2026-06-19", "end": "2026-06-21", "kind": "national"},
+        {"name": "中秋節及教師節", "start": "2026-09-25", "end": "2026-09-28", "kind": "national"},
+        {"name": "國慶日", "start": "2026-10-09", "end": "2026-10-11", "kind": "national"},
+        {"name": "臺灣光復節", "start": "2026-10-24", "end": "2026-10-26", "kind": "national"},
+        {"name": "行憲紀念日", "start": "2026-12-25", "end": "2026-12-27", "kind": "national"},
+
+        {"name": "元旦", "start": "2027-01-01", "end": "2027-01-03", "kind": "national"},
+        {"name": "農曆春節", "start": "2027-02-04", "end": "2027-02-10", "kind": "national"},
+        {"name": "228 和平紀念日", "start": "2027-02-27", "end": "2027-03-01", "kind": "national"},
+        {"name": "兒童節、清明節", "start": "2027-04-03", "end": "2027-04-06", "kind": "national"},
+        {"name": "勞動節", "start": "2027-04-30", "end": "2027-05-02", "kind": "national"},
+        {"name": "端午節", "start": "2027-06-09", "end": "2027-06-09", "kind": "national"},
+        {"name": "中秋節", "start": "2027-09-15", "end": "2027-09-15", "kind": "national"},
+        {"name": "教師節", "start": "2027-09-28", "end": "2027-09-28", "kind": "national"},
+        {"name": "國慶日", "start": "2027-10-09", "end": "2027-10-11", "kind": "national"},
+        {"name": "臺灣光復節", "start": "2027-10-23", "end": "2027-10-25", "kind": "national"},
+        {"name": "行憲紀念日", "start": "2027-12-24", "end": "2027-12-26", "kind": "national"},
+        {"name": "元旦", "start": "2027-12-31", "end": "2028-01-02", "kind": "national"}
+      ]
+    },
+
+    "jp": {
+      "label": "日本",
+      "confidence": {"2026": "verified", "2027": "partial"},
+      "periods": [
+        {"name": "元日", "start": "2026-01-01", "end": "2026-01-01", "kind": "national"},
+        {"name": "成人の日", "start": "2026-01-12", "end": "2026-01-12", "kind": "national"},
+        {"name": "建国記念の日", "start": "2026-02-11", "end": "2026-02-11", "kind": "national"},
+        {"name": "天皇誕生日", "start": "2026-02-23", "end": "2026-02-23", "kind": "national"},
+        {"name": "春分の日", "start": "2026-03-20", "end": "2026-03-20", "kind": "national"},
+        {"name": "ゴールデンウィーク", "start": "2026-04-29", "end": "2026-05-06", "kind": "national"},
+        {"name": "海の日", "start": "2026-07-20", "end": "2026-07-20", "kind": "national"},
+        {"name": "山の日", "start": "2026-08-11", "end": "2026-08-11", "kind": "national"},
+        {"name": "お盆", "start": "2026-08-13", "end": "2026-08-16", "kind": "custom"},
+        {"name": "シルバーウィーク", "start": "2026-09-19", "end": "2026-09-23", "kind": "national"},
+        {"name": "スポーツの日", "start": "2026-10-12", "end": "2026-10-12", "kind": "national"},
+        {"name": "文化の日", "start": "2026-11-03", "end": "2026-11-03", "kind": "national"},
+        {"name": "勤労感謝の日", "start": "2026-11-23", "end": "2026-11-23", "kind": "national"},
+        {"name": "年末年始", "start": "2026-12-29", "end": "2027-01-03", "kind": "custom"},
+
+        {"name": "ゴールデンウィーク", "start": "2027-04-29", "end": "2027-05-05", "kind": "national"}
+      ]
+    }
+  }
+}
