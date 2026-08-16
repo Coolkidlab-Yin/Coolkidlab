@@ -35,13 +35,15 @@ TIERS: list[tuple[str, list[tuple[str, str, int | None, str, str]]] ] = [
         ("M1", "護照效期夠不夠", None, "passport",
          "多數國家對入境當天的剩餘效期有門檻，不是「還沒過期就好」。門檻幾個月要查"),
         ("M2", "簽證／入境許可", None, "visa",
-         "免簽不等於什麼都不用辦，很多國家改成線上事前許可。規則以官方為準"),
+         "免簽不等於什麼都不用辦，很多國家改成線上事前許可。規則以官方為準。"
+         "**有轉機的話，轉機國是另一套規定，要分開查**"),
         ("M3", "撞不撞連假", None, "holiday",
          "連假會讓住宿翻倍、票券賣光"),
     ]),
     ("Tier 1 — 現在就要訂（會賣完、會漲）", [
         ("M4", "機票", 60, "flights",
-         "這裡不比價；要比哪天便宜用 Google Flights 的「日期網格」"),
+         "這裡不比價；要比哪天便宜用 Google Flights 的「日期網格」。"
+         "**有轉機就先問兩件事：同一張票嗎？想不想出機場？**"),
         ("M5", "住宿", 45, "hotels",
          "位置比價格重要，離車站 10 分鐘和 30 分鐘五天下來差很多"),
         ("M6", "要預約的票券", 30, "tickets",
@@ -99,11 +101,17 @@ OPTIONAL = {
         "**行程排少一點**，能坐下來休息的點要排進去",
         "跨時區的話，**服藥時間怎麼調要問醫生**",
     ]),
+    "solo": ("M16", "一個人去", [
+        "**外交部「旅外國人動態登錄」建議做**——免費，出事的時候他們找得到你",
+        "住宿位置比省錢重要，看的是**晚上走回去那段路有沒有燈、有沒有人**",
+        "行程和住宿地址**留一份給台灣的家人朋友**",
+        "有些餐廳不收單人訂位，非去不可的先問",
+    ]),
     "first_time": ("M17", "第一次出國", [
         "國際線建議起飛前 **2.5–3 小時**到機場",
-        "**登機門會變**，要看螢幕不要只看登機證",
-        "**行動電源只能手提，不能託運**",
         "轉機跟著 Transfer 指標走，**不要走到入境**，走錯要重過安檢",
+        "**同一張票的託運行李會直掛到終點**——轉機時間再長也拿不到，"
+        "藥、換洗、充電線、外套要放隨身",
         "落地順序：入境指標 → 證照查驗 → 提領行李 → 海關 → 出關",
     ]),
 }
@@ -113,7 +121,7 @@ OPTIONAL = {
 # 待辦要動詞開頭、帶關鍵限定。這裡是同一件事的兩種寫法。
 TODO_TEXT = {
     "M1": "查護照到期日，再查目的地要求剩幾個月",
-    "M2": "查目的地要辦哪種入境許可，順便看要幾個工作天",
+    "M2": "查目的地要辦哪種入境許可，順便看要幾個工作天；有轉機的話轉機國另外查一次",
     "M3": "",                     # 這件事是 agent 做的，不要丟回給使用者
     "M4": "訂機票",
     "M5": "訂住宿，挑走路 5 分鐘到車站的",
@@ -136,6 +144,18 @@ TODO_WHEN = {"M15": "買東西時"}
 # affiliate.json 剛好沒填這三個 key。哪天談成一個簽證代辦的聯盟方案填進去，
 # 預設指令就會對護照還沒確認的人噴導購連結，正好是這道閘門要防的事。
 TIER0_CATS = {"passport", "visa", "holiday"}
+
+# 這五條會出事，而且散在各個 reference 裡。以前它們掛在 --first-time 和 --seniors 上，
+# 等於「安全內容要看 agent 記不記得帶那個旗標」——沒被標成新手的成年人整趟拿不到
+# 「行動電源不能託運」，而住宿地址和館處電話在任何參數組合下都不會出現。
+# 現在無條件印。
+MUST_SAY = [
+    "**行動電源只能手提，不能託運**（櫃檯被攔很常見）",
+    "**藥放隨身、多帶幾天份**，處方箋最好有英文版",
+    "**登機門會變**，要看螢幕不要只看登機證",
+    "**住宿地址存在手機裡**（入境表和海關問的是地址，不是飯店名字）",
+    "**駐外館處的急難電話出發前存好**",
+]
 
 # 抑制的理由要分類講。以前只有一段寫死的租車文案，--days 1 抑制住宿時
 # 會在「住宿」底下印出一段講租車的話。
@@ -289,11 +309,14 @@ def build_todo(args: argparse.Namespace, told: set[str],
         lines.insert(min(2, len(lines)),
                      f"□ 現在　　查{args.to}和{args.frm}那幾天有沒有連假")
 
-    for key in ("kids", "seniors", "first_time"):
+    for key in ("kids", "seniors", "solo", "first_time"):
         if getattr(args, key):
             _, name, notes = OPTIONAL[key]
             lines += ["", f"— {name} —"]
             lines += [f"□ 　　　　{_short(n)}" for n in notes]
+
+    lines += ["", "— 不管怎樣都要記得 —"]
+    lines += [f"□ 　　　　{_short(n)}" for n in MUST_SAY]
     return "\n".join(lines) + "\n"
 
 
@@ -384,7 +407,8 @@ def build(args: argparse.Namespace) -> str:
                 used_links = True
             out.append("")
 
-    extras = [OPTIONAL[k] for k in ("kids", "seniors", "first_time") if getattr(args, k)]
+    extras = [OPTIONAL[k] for k in ("kids", "seniors", "solo", "first_time")
+              if getattr(args, k)]
     if extras:
         out += ["## Tier 5 — 你這趟的額外項目", "",
                 "**這一段跟 Tier 沒關係，現在就要知道。** 裡面有幾條是出發前才處理就來不及的。",
@@ -393,6 +417,10 @@ def build(args: argparse.Namespace) -> str:
             out += [f"### {code}　{name}", ""]
             out += [f"- {n}" for n in notes]
             out.append("")
+
+    out += ["---", "", "## 不管怎樣都要記得的五件事", ""]
+    out += [f"- {n}" for n in MUST_SAY]
+    out.append("")
 
     if args.people > 1:
         out += ["---", "",
@@ -425,6 +453,8 @@ def main() -> int:
     p.add_argument("--days", type=int, required=True, help="幾天")
     p.add_argument("--people", type=int, default=1, help="幾個人（預設 1）")
     p.add_argument("--from", dest="frm", default="台北", help="出發地（預設 台北）")
+    p.add_argument("--solo", action="store_true",
+                   help="一個人去（--people 1 會自動帶入）")
     p.add_argument("--first-time", dest="first_time", action="store_true",
                    help="第一次出國")
     p.add_argument("--kids", action="store_true", help="帶小孩")
@@ -458,6 +488,10 @@ def main() -> int:
                          "是不是跟 --depart 打反了？")
     if args.people < 1:
         raise SystemExit(f"--people 至少要 1，收到 {args.people}")
+    # 一個人去就是一個人去，不該取決於 agent 記不記得多帶一個旗標。
+    # 旅外登錄是零成本、出事時決定性的一項。
+    if args.people == 1:
+        args.solo = True
     try:
         dep = date.fromisoformat(args.depart)
     except ValueError:
