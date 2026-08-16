@@ -53,6 +53,13 @@ Coolkid AI Lab 的繁中 Claude Code plugin 工具庫。內容來自
 | Workflow | **brand-profile-lockdown** | 經歷、作品、失敗與在意的事 | 有原始事實支撐的 brand-profile.md |
 | Workflow | **voice-profile-extraction** | 自有寫作樣本與 holdout | 可驗證、可版本化的 voice-profile.md |
 | Workflow | **claude-code-checkpoint-system** | 長期專案與 hooks 環境 | 狀態檔、載入 hook 與跨 session smoke |
+| Workflow | **windows-desktop-pet-builder** | 自己的照片、Windows 環境 | 一致貼圖、WPF 透明視窗、拖曳與撿球物理 |
+| 引導 | **trip-guide** | 目的地、出發日、玩幾天、幾個人 | 按 5 個時間層排好、標上實際截止日的行前清單 |
+
+**trip-guide 手機也能用，不必裝。** 主文件在
+[`plugins/trip-guide/skills/trip-guide/SKILL.md`](plugins/trip-guide/skills/trip-guide/SKILL.md)，
+把[這個網址](https://raw.githubusercontent.com/Coolkidlab-Yin/Coolkidlab/master/plugins/trip-guide/skills/trip-guide/SKILL.md)丟給任何一個聊天 AI，
+或整份貼進對話框，都可以直接開始。
 
 ### 怎麼選
 

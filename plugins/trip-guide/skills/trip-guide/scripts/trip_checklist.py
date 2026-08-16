@@ -79,8 +79,11 @@ TIERS: list[tuple[str, list[tuple[str, str, int | None, str, str]]] ] = [
 OPTIONAL = {
     "kids": ("M16", "帶小孩", [
         "**小孩也要有自己的護照、自己的簽證／入境許可、自己的入境表**——不是跟著大人就好",
+        "**未成年護照的效期比大人短**，別看到「還沒過期」就放心，去查清楚剩幾年",
         "未滿 2 歲是嬰兒票（不佔位），要事先跟航空公司登記，機位有限",
         "推車多半可以帶到登機門再託運，但要先問",
+        "**訂房要看「可住人數」和「兒童入住政策」**——很多標準雙人房不給 3 個人住，"
+        "或要加床費、要事先申請。訂房網站的人數欄「大人」和「兒童」是分開算的，別全填成大人",
         "**行程排少一點**，小孩的節奏比大人慢很多",
     ]),
     "seniors": ("M16", "帶長輩", [
@@ -268,6 +271,11 @@ def build(args: argparse.Namespace) -> str:
     slots = {"dest": args.to, "depart": depart.isoformat(), "back": back.isoformat(),
              "days": str(args.days), "nights": str(max(0, args.days - 1)),
              "people": str(args.people)}
+    # 帶小孩的時候不要把總人數當成大人數送出去。訂房站的 adult= 只算大人，小孩走 children=，
+    # 而這支腳本只知道總人數、不知道怎麼拆。送 adult=3 給「2 大 1 小」是用錯的房型條件在搜，
+    # 還會篩掉一批房。整個不送，讓使用者在頁面上自己選，比送一個錯的安全。
+    if args.kids:
+        slots.pop("people")
 
     # 腳本手上已經有這些訊號，就不該把用不到的東西掛連結出去。
     # 「不要為了有連結就多推一項他不需要的東西」以前只寫在 00-boundaries.md，
