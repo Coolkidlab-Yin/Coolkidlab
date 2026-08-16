@@ -1,10 +1,11 @@
 """出國行前清單：把「該辦什麼」展開成帶實際日期的時間軸。
 
 不知道該訂什麼的人，缺的不是價格，是「現在到底輪到哪一項」。這支腳本把 17 個
-模組按五個時間層排開，用使用者的出發日算出每一項的實際截止日期，並標出撞不撞連假。
+模組按五個時間層排開，用使用者的出發日算出每一項的實際截止日期。
 
-**不連網、不查價、不查簽證規則。** 簽證與入境規定改得很快，寫死就是錯的——
-腳本只負責提醒「有這件事要辦」，規則本身一律由 Agent 導向官方網站。
+**不連網、不帶任何會過期的資料。** 簽證規則、連假日期都不在這支腳本裡——
+那些改得很快，存了就會爛掉，而且爛掉的時候沒有人會發現。
+腳本只負責提醒「有這件事要辦」和把日期算對；**答案由執行它的 AI 去查**。
 
 零依賴，只用 Python 標準庫。
 
@@ -22,7 +23,6 @@ from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-HOLIDAYS_PATH = DATA_DIR / "holidays.json"
 AFFILIATE_PATH = DATA_DIR / "affiliate.json"
 
 # (模組編號, 標題, 幾天前要辦, 導購分類, 一句話說明)
@@ -32,7 +32,7 @@ TIERS: list[tuple[str, list[tuple[str, str, int | None, str, str]]] ] = [
     # 一個開口就說「護照我確認過了」的人，每份清單第一行還是戳他一次。
     ("Tier 0 — 出發前先確認（沒過這關，訂什麼都白訂）", [
         ("M1", "護照效期夠不夠", None, "passport",
-         "多數國家要求入境時剩餘效期 6 個月以上，不是「還沒過期就好」"),
+         "多數國家對入境當天的剩餘效期有門檻，不是「還沒過期就好」。門檻幾個月要查"),
         ("M2", "簽證／入境許可", None, "visa",
          "免簽不等於什麼都不用辦，很多國家改成線上事前許可。規則以官方為準"),
         ("M3", "撞不撞連假", None, "holiday",
@@ -50,7 +50,7 @@ TIERS: list[tuple[str, list[tuple[str, str, int | None, str, str]]] ] = [
         ("M7", "交通票券／周遊券", 14, "transport",
          "划不划算看行程，不是買了一定賺"),
         ("M8", "租車＋國際駕照", 14, "carrental",
-         "國際駕照要在台灣先辦，出國之後辦不了；監理站當天可領"),
+         "國際駕照要在台灣先辦，出國之後辦不了。去監理站，流程要查"),
         ("M9", "旅遊保險", 14, "insurance",
          "信用卡附的旅平險通常只保搭乘期間，不保旅程中生病"),
     ]),
@@ -58,7 +58,7 @@ TIERS: list[tuple[str, list[tuple[str, str, int | None, str, str]]] ] = [
         ("M10", "eSIM／網卡", 3, "esim",
          "出發前買、落地開；先確認手機支不支援 eSIM、有沒有鎖網"),
         ("M11", "線上入境表", 3, "",
-         "很多國家改成線上填，有些要入境前 72 小時內才能填。以官方為準"),
+         "很多國家改成線上填，而且有時間窗、太早填無效。窗口多長要查"),
         ("M12", "換匯與海外刷卡", 3, "",
          "不用換一大包現金，但要有一點；刷卡先確認海外手續費與開通狀態"),
     ]),
@@ -108,14 +108,14 @@ OPTIONAL = {
 # 「護照效期夠不夠」貼進待辦 App，三天後他不知道自己要幹嘛。
 # 待辦要動詞開頭、帶關鍵限定。這裡是同一件事的兩種寫法。
 TODO_TEXT = {
-    "M1": "查護照到期日，要剩 6 個月以上",
+    "M1": "查護照到期日，再查目的地要求剩幾個月",
     "M2": "查目的地要辦哪種入境許可，順便看要幾個工作天",
     "M3": "",                     # 這件事是 agent 做的，不要丟回給使用者
     "M4": "訂機票",
     "M5": "訂住宿，挑走路 5 分鐘到車站的",
     "M6": "訂要預約的票券，沒有非去不可的就刪掉這行",
     "M7": "查周遊券划不划算，不划算就不要買",
-    "M8": "辦國際駕照，監理站當天可領",
+    "M8": "辦國際駕照，出國就辦不了",
     "M9": "買旅遊保險",
     "M10": "買 eSIM 或網卡",
     "M11": "填線上入境表 ← 不要提前填，有時間窗",
@@ -160,71 +160,33 @@ def load_affiliate() -> tuple[dict[str, str], str]:
     return links, cfg.get("disclosure", "")
 
 
-# 目的地字串 -> 連假資料的地區代碼。只收資料檔真的有的那兩區。
-# 對不到就是「這個目的地我們沒有連假資料」，那件事要講出來，不能靜默跳過。
-_REGION_ALIASES = {
-    "tw": ("台灣", "臺灣", "台北", "臺北", "桃園", "台中", "臺中",
-           "台南", "臺南", "高雄", "新竹"),
-    "jp": ("日本", "東京", "大阪", "京都", "沖繩", "那霸", "北海道",
-           "札幌", "福岡", "名古屋", "橫濱", "神戶", "廣島"),
-}
+# 這支腳本以前自己帶一份連假資料（台灣＋日本）。拿掉了，理由跟入境規定同一條：
+#
+#   資料會過期，過期時沒有任何跡象讓人發現；而且只收兩個地區，
+#   去韓國、泰國、歐洲的人看到表上沒有 🎌，會以為系統查過了。
+#
+# 現在改成：**連假由執行這份文件的 AI 去查**（它查得到最新的，而且不限國家），
+# 查到之後用 --holiday 告訴腳本，腳本只負責把提前量加倍這個「機制」做對。
+#
+# 機制留著、資料交出去。這是這個 skill 一貫的分界線。
 
 
-def match_region(text: str) -> str:
-    for key, names in _REGION_ALIASES.items():
-        if any(n in text for n in names):
-            return key
-    return ""
+def lead_of(code: str, lead: int | None, from_hit: bool, to_hit: bool) -> int | None:
+    """撞連假就把提前量加倍——但只加該加的那一項。
 
+    出發地的連假推高的是**機票**（大家同時出境）；目的地的連假推高的是
+    **住宿與票券**（當地都在放假）。整批加倍會叫人為了一個不存在的漲價提前訂房。
 
-def load_holidays(regions: set[str], years: set[str]) -> tuple[list, str]:
-    """回傳 (期間清單, 警告)。過期就整個不標，而不是照舊硬標。
-
-    標錯連假比不標更糟：使用者會照著錯的日期改行程，而且沒有任何跡象讓他發現。
-
-    `regions` 是這趟真的相關的地區——出發地與目的地。**不相關的地區不能撈進來**：
-    實測過一趟美西行程被標上日本的年末年始，使用者會以為系統查過目的地了，
-    但那段美國的假期一個字都沒查。
+    文件寫了「撞連假提前一倍」，以前腳本只印一行警告、日期完全沒動，
+    兩條路差過 58 天。規則寫在文件裡而工具不執行，等於沒有規則。
     """
-    try:
-        raw = json.loads(HOLIDAYS_PATH.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError):
-        return [], "讀不到連假資料，這次不標連假。"
-
-    expires = raw.get("_expires_after", "")
-    if expires and date.today().isoformat() > expires:
-        return [], f"連假資料到 {expires} 為止，已經過期，這次不標連假。"
-
-    rows, soft = [], []
-    for key, cfg in raw.get("regions", {}).items():
-        if key not in regions:
-            continue
-        label = cfg.get("label", key)
-        for yr, level in (cfg.get("confidence") or {}).items():
-            if level != "verified" and yr in years:
-                soft.append(f"{label} {yr} 年（{level}）")
-        for p in cfg.get("periods", []):
-            try:
-                date.fromisoformat(p["start"]), date.fromisoformat(p["end"])
-            except (KeyError, ValueError):
-                continue
-            rows.append((p["start"], p["end"], p.get("name", ""), key))
-    warn = ""
-    if soft:
-        warn = ("這幾筆連假資料還沒跟官方版比對過：" + "、".join(sorted(set(soft)))
-                + "。改行程前請自己再確認一次。")
-    return sorted(rows), warn
-
-
-def holidays_hit(rows: list, start: str, end: str) -> list[tuple[str, str]]:
-    """行程期間內撞到的連假，回 (地區, 名稱)。
-
-    地區要留著，因為出發地的連假和目的地的連假影響完全不同的東西：
-    台灣連假推高的是台北出發的機票，不會推高東京的住宿。混在一起講會誤導。
-    """
-    hits = [(label, name) for s, e, name, label in rows
-            if s <= end and start <= e and name]
-    return list(dict.fromkeys(hits))
+    if lead is None or lead == 0:
+        return lead
+    if code == "M4" and from_hit:
+        return lead * 2
+    if code in ("M5", "M6") and to_hit:
+        return lead * 2
+    return lead
 
 
 def _deadline(depart: date, lead: int | None) -> str:
@@ -246,8 +208,8 @@ def _short(text: str) -> str:
     return text.replace("**", "").strip("，。 ")
 
 
-def build_todo(args: argparse.Namespace, hit: list[str], told: set[str],
-               to_region: str) -> str:
+def build_todo(args: argparse.Namespace, told: set[str],
+               from_hit: bool, to_hit: bool) -> str:
     """一行一件事、日期在前的待辦清單，設計成直接貼進待辦 App。
 
     刻意不放連結、不放理由：連結會變成一面牆，理由在對話裡已經講過。
@@ -259,8 +221,8 @@ def build_todo(args: argparse.Namespace, hit: list[str], told: set[str],
     """
     depart = date.fromisoformat(args.depart)
     lines = [f"{args.to}行前 to-do（{depart.month}/{depart.day} 出發）", ""]
-    if hit:
-        lines += [f"※ 撞到 {'、'.join(hit)}，住宿和票券要更早訂", ""]
+    if from_hit or to_hit:
+        lines += ["※ 撞到連假，相關項目的提前量已經加倍", ""]
 
     def when(lead: int | None) -> str:
         if lead is None:
@@ -272,7 +234,8 @@ def build_todo(args: argparse.Namespace, hit: list[str], told: set[str],
 
     per_head = "，每個人各一份" if args.people > 1 else ""
     for _, items in (TIERS if args.tier == "all" else TIERS[:int(args.tier) + 1]):
-        for code, _, lead, cat, _ in items:
+        for code, _, lead0, cat, _ in items:
+            lead = lead_of(code, lead0, from_hit, to_hit)
             if cat and cat in told:
                 continue
             text = TODO_TEXT.get(code, "")
@@ -282,8 +245,8 @@ def build_todo(args: argparse.Namespace, hit: list[str], told: set[str],
                 text += per_head  # 護照、入境許可、入境表都是一人一份，最會漏
             lines.append(f"□ {TODO_WHEN.get(code, when(lead))}　{text}")
 
-    if not to_region:
-        lines.append(f"□ 現在　　查{args.to}當地的假期，我沒有那邊的資料")
+    if args.holiday == "none":
+        lines.append(f"□ 現在　　查{args.to}和台灣那幾天有沒有連假")
 
     for key in ("kids", "seniors", "first_time"):
         if getattr(args, key):
@@ -296,11 +259,9 @@ def build_todo(args: argparse.Namespace, hit: list[str], told: set[str],
 def build(args: argparse.Namespace) -> str:
     depart = date.fromisoformat(args.depart)
     back = depart + timedelta(days=args.days - 1)
-    from_region = match_region(args.frm)
-    to_region = match_region(args.to)
-    rows, warn = load_holidays({r for r in (from_region, to_region) if r},
-                               {depart.isoformat()[:4], back.isoformat()[:4]})
-    hit = holidays_hit(rows, depart.isoformat(), back.isoformat())
+    # 連假由 AI 查，查到之後用 --holiday 告訴腳本是哪一邊撞到。
+    from_hit = args.holiday in ("from", "both")
+    to_hit = args.holiday in ("to", "both")
     links, disclosure = load_affiliate()
     # {days} 和 {nights} 一定要分開。保險是按「天」投保的，餵 nights 進去會少保一天,
     # 而少的正好是回程那天——最容易延誤、最需要不便險的那天。實測踩過。
@@ -322,7 +283,7 @@ def build(args: argparse.Namespace) -> str:
     skip = told | auto
 
     if args.todo:
-        return build_todo(args, hit, told, to_region)
+        return build_todo(args, told, from_hit, to_hit)
 
     tiers = TIERS if args.tier == "all" else TIERS[:int(args.tier) + 1]
 
@@ -335,20 +296,18 @@ def build(args: argparse.Namespace) -> str:
     ]
     # 出發地的連假推高的是機票和機場人潮；目的地的連假才推高住宿與票券。
     # 混在一起講，會讓人為了一個不存在的住宿漲價提前訂房。
-    from_hits = [n for k, n in hit if k == from_region]
-    to_hits = [n for k, n in hit if k == to_region and k != from_region]
-    if from_hits:
-        out += [f"> 🎌 **出發那幾天是{'、'.join(from_hits)}**　"
-                "機票會貴、機場會擠，但不影響目的地的住宿。", ""]
-    if to_hits:
-        out += [f"> 🎌 **目的地那幾天是{'、'.join(to_hits)}**　"
-                "住宿與票券會比平常貴而且賣得快，Tier 1 要提前動作。", ""]
-    if warn:
-        out += [f"> ⚠ {warn}", ""]
-    if not to_region:
-        out += [f"> ⚠ **連假資料裡沒有「{args.to}」**，所以這張表沒有查過目的地的假期。"
-                "沒標不代表沒有——當地連假請自己查一次。", ""]
-    if args.tier != "all":
+    if from_hit:
+        out += ["> 🎌 **出發那幾天撞到出發地的連假**　"
+                "機票會貴、機場會擠。已經把機票的提前量加倍。", ""]
+    if to_hit:
+        out += ["> 🎌 **目的地那幾天在放假**　"
+                "住宿與票券會貴而且賣得快。已經把住宿與票券的提前量加倍。", ""]
+    if args.holiday == "none":
+        out += ["> ⚠ **這張表沒有查過任何連假。** 這支腳本不帶連假資料——"
+                "資料會過期，而且過期時沒有人會發現。"
+                "**出發地和目的地的假期請自己查一次**，查到之後用 "
+                "`--holiday from|to|both` 重跑，提前量會自動加倍。", ""]
+    if args.tier != "all" and not args.for_user:
         out += [f"> 這張只有到 Tier {args.tier}。"
                 "**前面的關卡沒過之前，後面的不要推給使用者。**", ""]
 
@@ -359,6 +318,7 @@ def build(args: argparse.Namespace) -> str:
             out.append(f"### {code}　{name}")
             out.append("")
             out.append(f"- {note}")
+            lead = lead_of(code, lead, from_hit, to_hit)
             out.append(f"- **時間**：{_deadline(depart, lead)}")
             if cat in told:
                 out.append("- （你說這項已經處理了／用不到，跳過）")
@@ -388,10 +348,12 @@ def build(args: argparse.Namespace) -> str:
         out += ["---", "",
                 f"**⚠ 你們有 {args.people} 個人：護照、簽證／入境許可、線上入境表"
                 "都是「一人一份」，不是一家一份。**", ""]
-    if used_links:
+    if used_links and not args.for_user:
         out += ["---", "",
                 "上面標了連結的項目是推薦連結，用不用都可以，"
                 "**每一項我都該同時告訴你替代方案**——沒講的話直接問我。", ""]
+    if args.for_user:
+        return "\n".join(out) + "\n"
     out += [
         "---",
         "",
@@ -428,6 +390,12 @@ def main() -> int:
     p.add_argument("--booked", default="",
                    help="已經訂好／用不到的品類，逗號分隔，會跳過不推薦。"
                         "例如 flights,hotels,transport")
+    p.add_argument("--holiday", default="none",
+                   choices=["none", "from", "to", "both"],
+                   help="這趟撞到誰的連假（你自己查，腳本不帶資料）。"
+                        "from=出發地→機票提前量加倍；to=目的地→住宿與票券加倍；both=兩邊")
+    p.add_argument("--for-user", dest="for_user", action="store_true",
+                   help="拿掉只有 agent 需要看的自律提醒與方法論尾註，直接給使用者看")
     p.add_argument("--todo", action="store_true",
                    help="改出可以直接貼進待辦 App 的清單（一行一件事、無連結）")
     p.add_argument("--out", help="寫進檔案（預設直接印出來）")
@@ -441,13 +409,13 @@ def main() -> int:
         raise SystemExit(f"--depart 要像 2026-10-13，收到 '{args.depart}'") from None
 
     text = build(args)
-    if args.driving:
+    # to-do 模式沒有模組標題（它用 TODO_TEXT），租車的提醒在 build_todo 裡另外處理。
+    if args.driving and not args.todo:
         old = "### M8　租車＋國際駕照"
-        if old not in text and args.tier not in ("2", "3", "4", "all"):
-            pass          # Tier 還沒開到 M8，不是錯誤
-        elif old not in text:
+        if old in text:
+            text = text.replace(old, old + "　⚠ 你這趟要租車，這項不要拖")
+        elif args.tier in ("2", "3", "4", "all"):
             raise SystemExit("內部錯誤：--driving 找不到 M8 標題，TIERS 的文字被改過了")
-        text = text.replace(old, old + "　⚠ 你這趟要租車，這項不要拖")
     if args.out:
         path = Path(args.out)
         path.parent.mkdir(parents=True, exist_ok=True)
