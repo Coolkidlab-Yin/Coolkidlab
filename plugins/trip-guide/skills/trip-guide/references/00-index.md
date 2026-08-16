@@ -165,6 +165,7 @@ python scripts/trip_checklist.py --to 韓國 --depart 2026-10-13 --days 5 --peop
 | `--first-time` | 第一次出國，加進 M17 | — |
 | `--driving` | 要租車。在 M8 標題後面加一句「這項不要拖」（**不會改變順序或提前量**） | — |
 | `--kids` / `--seniors` | 帶小孩／長輩，加 M16 | — |
+| **`--solo`** | **一個人去，加 M16**（`--people 1` 自動帶入） | — |
 | **`--booked flights,hotels`** | **他說訂好了／用不到的分類，不再推也不掛連結** | — |
 | **`--holiday from\|to\|both`** | **哪一邊撞到連假**（出發地加倍機票，目的地加倍住宿票券） | `none` |
 | **`--todo`** | **改出可以直接貼進待辦 App 的清單** | — |
