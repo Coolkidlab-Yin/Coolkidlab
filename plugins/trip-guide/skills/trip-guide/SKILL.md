@@ -51,8 +51,34 @@ description: |
 
 ## 你手上只有這一份的時候（貼進聊天視窗的情況）
 
-**如果你打不開 `references/`、`data/`、`scripts/`，你缺這五樣。
-第一次碰到就要跟使用者講一次，不要靜靜跳過。**
+### 先試著自己補完，再談降級
+
+**你如果能上網，這些檔案是公開的，直接抓：**
+
+```
+https://raw.githubusercontent.com/Coolkidlab-Yin/Coolkidlab/master/plugins/trip-guide/skills/trip-guide/<路徑>
+```
+
+把下面「Reference Index」寫的相對路徑接上去就是完整網址。
+**但不要只抓文件裡點名的那幾個**——先列目錄，一次看清楚有什麼：
+
+```
+https://api.github.com/repos/Coolkidlab-Yin/Coolkidlab/contents/plugins/trip-guide/skills/trip-guide/references
+```
+
+實測：只照文件裡點名的路徑抓，會少拿一半的檔案而完全不自知。
+
+**抓的時候有兩個坑：**
+
+- **抓網頁的工具會幫你「摘要」。** 22KB 的腳本會被摘成散文，讀不到原始碼；
+  細節多的 reference 也會掉東西。要逐字內容就明講「逐字抄出某段」，不要收摘要。
+- **剛更新過的話，`master` 網址有幾分鐘快取**，可能拿到上一版。
+
+**抓不到就照下面走，不要假裝有。**
+
+### 抓不到的時候，你缺這五樣
+
+**第一次碰到就要跟使用者講一次，不要靜靜跳過。**
 
 | 缺什麼 | 怎麼辦 |
 |---|---|
