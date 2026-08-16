@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import json
 import re
 from datetime import date, timedelta
@@ -131,6 +132,23 @@ TODO_TEXT = {
 # 退稅不是「落地後」做的事，是「買東西的當下」。寫成落地後等於沒講。
 TODO_WHEN = {"M15": "買東西時"}
 
+# Tier 0 是「確認」不是「購買」，這三類永遠不掛連結。以前這件事只是碰巧成立——
+# affiliate.json 剛好沒填這三個 key。哪天談成一個簽證代辦的聯盟方案填進去，
+# 預設指令就會對護照還沒確認的人噴導購連結，正好是這道閘門要防的事。
+TIER0_CATS = {"passport", "visa", "holiday"}
+
+# 抑制的理由要分類講。以前只有一段寫死的租車文案，--days 1 抑制住宿時
+# 會在「住宿」底下印出一段講租車的話。
+AUTO_REASON = {
+    "carrental": "你沒說要租車，所以這項不推。真的要租再跟我說，"
+                 "**但國際駕照無論如何都建議先辦**——出國就辦不了",
+    "hotels": "當天來回沒有過夜，這項不適用",
+}
+
+# --booked 的合法值。靜默吃掉錯字是最糟的：輸出跟沒帶參數時一模一樣。
+VALID_CATS = {"passport", "visa", "holiday", "flights", "hotels", "tickets",
+              "transport", "carrental", "insurance", "esim"}
+
 _SLOT = re.compile(r"\{(\w+)\}")
 
 
@@ -156,11 +174,20 @@ def fill_url(template: str, values: dict[str, str]) -> str:
 
 def load_affiliate() -> tuple[dict[str, str], str]:
     try:
-        cfg = json.loads(AFFILIATE_PATH.read_text(encoding="utf-8"))
+        # utf-8-sig：被 Out-File -Encoding UTF8 動過的檔會帶 BOM，用 utf-8 讀會丟
+        # JSONDecodeError 然後被下面吞掉，症狀是「導購整組無聲消失」而不是報錯。
+        cfg = json.loads(AFFILIATE_PATH.read_text(encoding="utf-8-sig"))
     except (FileNotFoundError, json.JSONDecodeError):
         return {}, ""
-    links = {k: v.strip() for k, v in (cfg.get("links") or {}).items() if v and v.strip()}
-    return links, cfg.get("disclosure", "")
+    raw = cfg.get("links") if isinstance(cfg, dict) else None
+    links = ({k: v.strip() for k, v in raw.items() if isinstance(v, str) and v.strip()}
+             if isinstance(raw, dict) else {})
+    disclosure = cfg.get("disclosure", "") if isinstance(cfg, dict) else ""
+    # 揭露跟連結綁死：沒有揭露就一條連結都不出。
+    # 00-boundaries.md 寫「不可能只出連結不出揭露」,那句話以前是靠人守的。
+    if not str(disclosure).strip():
+        return {}, ""
+    return links, str(disclosure)
 
 
 # 這支腳本以前自己帶一份連假資料（台灣＋日本）。拿掉了，理由跟入境規定同一條：
@@ -198,15 +225,23 @@ def _deadline(depart: date, lead: int | None) -> str:
     if lead == 0:
         return "落地後"
     day = depart - timedelta(days=lead)
-    if day <= date.today():
-        return f"**已經過了建議時點（{lead} 天前），盡快處理**"
     left = (day - date.today()).days
+    if left < 0:
+        return f"**已經過了建議時點（{lead} 天前），盡快處理**"
+    if left == 0:
+        # 以前是 <=，截止日剛好今天會被報成「已經過了」，而 02-timing.md 規定
+        # 看到那句就要切換成「來不及」的講法——等於叫還來得及的人放棄。
+        return f"{day.isoformat()}（**今天最後一天**）"
     return f"{day.isoformat()}（還有 {left} 天）"
 
 
 def _short(text: str) -> str:
-    """待辦要掃得到，所以只留破折號／括號之前那半句。"""
-    for sep in ("——", "（", "；"):
+    """待辦要掃得到，所以砍掉補述。
+
+    以前連「（」也砍，但動作常常在括號後面（「未滿 2 歲是嬰兒票（不佔位），
+    要事先跟航空公司登記」），砍完剩一句沒有動作的陳述句。
+    """
+    for sep in ("——", "；"):
         text = text.split(sep)[0]
     return text.replace("**", "").strip("，。 ")
 
@@ -239,8 +274,8 @@ def build_todo(args: argparse.Namespace, told: set[str],
     for _, items in (TIERS if args.tier == "all" else TIERS[:int(args.tier) + 1]):
         for code, _, lead0, cat, _ in items:
             lead = lead_of(code, lead0, from_hit, to_hit)
-            if cat and cat in told:
-                continue
+            if cat and cat in told and code != "M8":
+                continue          # M8 例外見 docstring：唯一出國就補不回來的一項
             text = TODO_TEXT.get(code, "")
             if not text:
                 continue          # M3 之類「這是 agent 的工作」的項目不進待辦
@@ -249,7 +284,10 @@ def build_todo(args: argparse.Namespace, told: set[str],
             lines.append(f"□ {TODO_WHEN.get(code, when(lead))}　{text}")
 
     if args.holiday == "none":
-        lines.append(f"□ 現在　　查{args.to}和台灣那幾天有沒有連假")
+        # 這是「現在」的項目，掛在整份最底下就掃不到（日期在最前面才是這份表的賣點）。
+        # 出發地要用 --from，寫死「台灣」的話，人在東京出發那行就是錯的指示。
+        lines.insert(min(2, len(lines)),
+                     f"□ 現在　　查{args.to}和{args.frm}那幾天有沒有連假")
 
     for key in ("kids", "seniors", "first_time"):
         if getattr(args, key):
@@ -281,7 +319,11 @@ def build(args: argparse.Namespace) -> str:
     # 「不要為了有連結就多推一項他不需要的東西」以前只寫在 00-boundaries.md，
     # 靠 agent 自律；實測發現只要照「全部列給我」的例外倒表，那條線就破了。
     told = {c.strip() for c in (args.booked or "").split(",") if c.strip()}
-    auto = set()
+    unknown = told - VALID_CATS
+    if unknown:
+        print(f"⚠ --booked 認不得：{'、'.join(sorted(unknown))}"
+              f"（可用：{'、'.join(sorted(VALID_CATS))}）", file=sys.stderr)
+    auto = set(TIER0_CATS)
     if not args.driving:
         auto.add("carrental")      # 沒說要租車就不要推租車
     if args.days <= 1:
@@ -313,8 +355,9 @@ def build(args: argparse.Namespace) -> str:
     if args.holiday == "none":
         out += ["> ⚠ **這張表沒有查過任何連假。** 這支腳本不帶連假資料——"
                 "資料會過期，而且過期時沒有人會發現。"
-                "**出發地和目的地的假期請自己查一次**，查到之後用 "
-                "`--holiday from|to|both` 重跑，提前量會自動加倍。", ""]
+                "**出發地和目的地的假期請自己查一次。**", ""]
+    if args.holiday == "none" and not args.for_user:
+        out += ["> （查到之後用 `--holiday from|to|both` 重跑，提前量會自動加倍。）", ""]
     if args.tier != "all" and not args.for_user:
         out += [f"> 這張只有到 Tier {args.tier}。"
                 "**前面的關卡沒過之前，後面的不要推給使用者。**", ""]
@@ -330,9 +373,8 @@ def build(args: argparse.Namespace) -> str:
             out.append(f"- **時間**：{_deadline(depart, lead)}")
             if cat in told:
                 out.append("- （你說這項已經處理了／用不到，跳過）")
-            elif cat in auto:
-                out.append("- （你沒說要租車，所以這項不推。真的要租再跟我說，"
-                           "**但國際駕照無論如何都建議先辦**——出國就辦不了）")
+            elif cat in auto and cat in AUTO_REASON:
+                out.append(f"- （{AUTO_REASON[cat]}）")
             url = "" if (args.no_links or not cat or cat in skip) else \
                 fill_url(links.get(cat, ""), slots)
             if url:
@@ -411,14 +453,24 @@ def main() -> int:
 
     if args.days < 1:
         raise SystemExit("--days 至少要 1")
+    if args.days > 365:
+        raise SystemExit(f"--days 收到 {args.days}，超出這份清單的設計範圍。"
+                         "是不是跟 --depart 打反了？")
+    if args.people < 1:
+        raise SystemExit(f"--people 至少要 1，收到 {args.people}")
     try:
-        date.fromisoformat(args.depart)
+        dep = date.fromisoformat(args.depart)
     except ValueError:
         raise SystemExit(f"--depart 要像 2026-10-13，收到 '{args.depart}'") from None
+    if dep < date.today():
+        # 不擋的話會產出一份格式完全正常、日期全是過去式的清單，
+        # 還附上帶著過去日期的訂房連結，而使用者不會發現。
+        raise SystemExit(f"--depart 是過去的日期（{args.depart}，今天 {date.today()}）。"
+                         "確認是不是打錯年份；要規劃改期就用新的出發日重跑。")
 
     text = build(args)
     # to-do 模式沒有模組標題（它用 TODO_TEXT），租車的提醒在 build_todo 裡另外處理。
-    if args.driving and not args.todo:
+    if args.driving and not args.todo and "carrental" not in (args.booked or ""):
         old = "### M8　租車＋國際駕照"
         if old in text:
             text = text.replace(old, old + "　⚠ 你這趟要租車，這項不要拖")
