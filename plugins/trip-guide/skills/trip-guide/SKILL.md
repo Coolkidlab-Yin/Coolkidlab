@@ -518,7 +518,9 @@ python scripts/trip_checklist.py --to 首爾 --depart 2026-12-05 --days 4 \
 
 - 機票：`https://tw.trip.com/flights/?Allianceid=10050615&SID=328478116&trip_sub3=D19231886`
 - 住宿：`https://tw.trip.com/hotels/?checkin=出發日&checkout=回程日&adult=大人數&Allianceid=10050615&SID=328478116&trip_sub3=D19231886`
-  （日期填 `YYYY-MM-DD`；**帶小孩就把 `adult=` 整段拿掉**——那個欄位只算大人，讓他自己在頁面上選）
+  （日期填 `YYYY-MM-DD`；`adult=` 填大人數，**一個人就是 `adult=1`，不要整段漏掉**——
+  漏掉的話頁面會用預設的 2 位成人。唯一要拿掉的情況是**帶小孩**：那個欄位只算大人，
+  整段拿掉讓他自己在頁面上選。實測：AI 會把「帶小孩才拿掉」讀成「可以不填」，所以寫死）
 
 **規矩五條，缺一條就不要給：**
 
