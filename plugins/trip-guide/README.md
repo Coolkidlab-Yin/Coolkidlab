@@ -30,6 +30,13 @@
 
 接著講你要去哪、大概什麼時候、玩幾天、幾個人就可以開始。
 
+**Gemini（建議存成 Gem）**
+
+直接把主文件貼進 Gemini 聊天也能用，但實測多聊幾輪它會忘記規則。
+穩的做法是建一個 Gem：Gemini 側欄 → 探索 Gem → 建立 Gem，
+把 [`skills/trip-guide/GEM.md`](skills/trip-guide/GEM.md) 的內容貼進「指令」欄，存檔。
+之後每次開那個 Gem 就是阿步，聊再多輪都不會掉。
+
 **Claude Code（完整版）**
 
 ```
