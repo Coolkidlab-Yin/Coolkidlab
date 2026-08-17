@@ -65,8 +65,9 @@ python skills/trip-guide/scripts/trip_checklist.py --to 福岡 --depart 2026-12-
 
 ## 推薦連結
 
-`data/affiliate.json` 裡有機票和住宿的 Trip.com 推廣連結，清單裡出現時**一定同時附上揭露聲明**，
-而且每一項都會同時給替代方案。把那個檔案的 `links` 全部留空，導購就完全不會出現。
+`data/affiliate.json` 裡有機票和住宿的 Trip.com 推廣連結，以及 Saily eSIM 的推薦碼，
+清單裡出現時**一定同時附上揭露聲明**，而且每一項都會同時給替代方案。
+把那個檔案的 `links` 和 `link_notes` 全部留空，導購就完全不會出現。
 
 ## License
 

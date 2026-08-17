@@ -192,13 +192,13 @@ def fill_url(template: str, values: dict[str, str]) -> str:
     return urlunsplit((parts.scheme, parts.netloc, path, urlencode(kept), parts.fragment))
 
 
-def load_affiliate() -> tuple[dict[str, str], str]:
+def load_affiliate() -> tuple[dict[str, str], str, dict[str, str]]:
     try:
         # utf-8-sig：被 Out-File -Encoding UTF8 動過的檔會帶 BOM，用 utf-8 讀會丟
         # JSONDecodeError 然後被下面吞掉，症狀是「導購整組無聲消失」而不是報錯。
         cfg = json.loads(AFFILIATE_PATH.read_text(encoding="utf-8-sig"))
     except (FileNotFoundError, json.JSONDecodeError):
-        return {}, ""
+        return {}, "", {}
     raw = cfg.get("links") if isinstance(cfg, dict) else None
     links = ({k: v.strip() for k, v in raw.items() if isinstance(v, str) and v.strip()}
              if isinstance(raw, dict) else {})
@@ -206,8 +206,13 @@ def load_affiliate() -> tuple[dict[str, str], str]:
     # 揭露跟連結綁死：沒有揭露就一條連結都不出。
     # 00-boundaries.md 寫「不可能只出連結不出揭露」,那句話以前是靠人守的。
     if not str(disclosure).strip():
-        return {}, ""
-    return links, str(disclosure)
+        return {}, "", {}
+    # link_notes：該類推廣要使用者自己動手時（例如結帳輸推薦碼）印在連結後的操作句。
+    raw_notes = cfg.get("link_notes") if isinstance(cfg, dict) else None
+    link_notes = ({k: v.strip() for k, v in raw_notes.items()
+                   if isinstance(v, str) and v.strip()}
+                  if isinstance(raw_notes, dict) else {})
+    return links, str(disclosure), link_notes
 
 
 # 這支腳本以前自己帶一份連假資料（台灣＋日本）。拿掉了，理由跟入境規定同一條：
@@ -326,7 +331,7 @@ def build(args: argparse.Namespace) -> str:
     # 連假由 AI 查，查到之後用 --holiday 告訴腳本是哪一邊撞到。
     from_hit = args.holiday in ("from", "both")
     to_hit = args.holiday in ("to", "both")
-    links, disclosure = load_affiliate()
+    links, disclosure, link_notes = load_affiliate()
     # {days} 和 {nights} 一定要分開。保險是按「天」投保的，餵 nights 進去會少保一天,
     # 而少的正好是回程那天——最容易延誤、最需要不便險的那天。實測踩過。
     slots = {"dest": args.to, "depart": depart.isoformat(), "back": back.isoformat(),
@@ -403,7 +408,9 @@ def build(args: argparse.Namespace) -> str:
             if url:
                 # 揭露跟著每一條連結走。放在整份最尾端等於沒有——
                 # 使用者看到第四條連結時根本不知道那是分潤。
-                out.append(f"- [去看看]({url})　*{disclosure}*")
+                extra = link_notes.get(cat, "")
+                tail = f"　{extra}" if extra else ""
+                out.append(f"- [去看看]({url}){tail}　*{disclosure}*")
                 used_links = True
             out.append("")
 
