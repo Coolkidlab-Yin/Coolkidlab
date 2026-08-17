@@ -36,6 +36,15 @@ LOCAL_LINK = re.compile(
     r"\[[^\]]+\]\(\s*(?:<([^>]+)>|((?!https?://|mailto:|#)[^)\s]+))"
     r"(?:\s+['\"][^'\"]+['\"])?\s*\)"
 )
+# 500 行是預設上限。豁免名單:SKILL.md 本身就是對外產品本體的 skill,
+# 放行到「個別上限」而不是無條件——超過個別上限照樣紅燈,理由必須寫在這裡。
+LINE_BUDGETS = {
+    # trip-guide 的 SKILL.md 同時是「手機貼文模式」的完整產品:
+    # 使用者只拿得到這一份,內容下放 references 等於精簡版缺料。
+    # 2026-08-17 本人裁定放寬,而非瘦身。
+    "trip-guide": 800,
+}
+
 QUALITY_CHECKS = {
     "Agent 引導邊界": re.compile(
         r"(?:引導邊界|定位[:：].*(?:引導|骨架|判斷框架|Agent))"
@@ -363,8 +372,9 @@ def main() -> int:
         if len(metadata.get("description", "").strip()) < 40:
             errors.append(f"{skill_path.relative_to(ROOT)}: description is missing or too vague")
         line_count = len(skill_text.splitlines())
-        if line_count > 500:
-            errors.append(f"{skill_path.relative_to(ROOT)}: {line_count} lines exceeds the 500-line target")
+        line_budget = LINE_BUDGETS.get(name, 500)
+        if line_count > line_budget:
+            errors.append(f"{skill_path.relative_to(ROOT)}: {line_count} lines exceeds the {line_budget}-line target")
         sections = markdown_sections(skill_text)
         for label, pattern in QUALITY_CHECKS.items():
             matching_bodies = [body for heading, body in sections if pattern.search(heading)]
@@ -372,7 +382,8 @@ def main() -> int:
                 errors.append(f"{skill_path.relative_to(ROOT)}: missing quality section: {label}")
             elif not any(len(re.sub(r"\s+", "", body)) >= 20 for body in matching_bodies):
                 errors.append(f"{skill_path.relative_to(ROOT)}: quality section is empty or too thin: {label}")
-        if re.search(r"\b(?:TODO|TBD)\b", skill_text, re.IGNORECASE):
+        # (?<!-)/(?!-):CLI 旗標名(--todo)不是待辦標記,別誤報。
+        if re.search(r"(?<!-)\b(?:TODO|TBD)\b(?!-)", skill_text, re.IGNORECASE):
             warnings.append(f"{skill_path.relative_to(ROOT)}: contains TODO/TBD")
         validate_local_links(skill_path, errors)
 
