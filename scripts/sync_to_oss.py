@@ -39,11 +39,12 @@ SYNC_MAP = {
     "ig-bot-builder": "skills",
     "line-bot-builder": "skills",
     "threads-bot-builder": "skills",
+    "trip-guide": "skills",  # 2026-09-03 本人裁定獨立成 repo(原本只在 marketplace)
     "voice-profile-extraction": "skills",
     "windows-desktop-pet-builder": "pet",
 }
 
-EXCLUDE_NAMES = {"__pycache__"}
+EXCLUDE_NAMES = {"__pycache__", ".ruff_cache"}
 EXCLUDE_SUFFIXES = {".pyc"}
 # oss 側永不刪除/覆蓋來源以外的這些檔
 OSS_OWNED = {"README.md", ".gitignore", ".gitattributes"}

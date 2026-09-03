@@ -14,7 +14,7 @@
 | 用途 | 位置 |
 |---|---|
 | 給人看 | [`skills/trip-guide/SKILL.md`](skills/trip-guide/SKILL.md) |
-| 給 AI 抓 | `https://raw.githubusercontent.com/Coolkidlab-Yin/Coolkidlab/master/plugins/trip-guide/skills/trip-guide/SKILL.md` |
+| 給 AI 抓 | `https://raw.githubusercontent.com/Coolkidlab-Yin/trip-guide/main/skills/trip-guide/SKILL.md` |
 
 其餘檔案在 [`skills/trip-guide/`](skills/trip-guide/) 底下：
 `references/` 是 16 份判斷細節、`data/affiliate.json` 是推薦連結、`scripts/trip_checklist.py` 是零依賴的清單產生器。
